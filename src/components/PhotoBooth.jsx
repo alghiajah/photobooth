@@ -26,8 +26,8 @@ const PHOTO_Y_COORDS = [
 // Warna Latar Belakang Kanvas (Background Layer dasar di bawah foto)
 const CANVAS_BG_COLOR = "#ffffff"; 
 
-// Path Gambar Bingkai Eksternal Anda
-const FRAME_IMAGE_PATH = "/assets/frame.png";
+// Path Gambar Bingkai Eksternal Anda (Mendukung Subdirektori GitHub Pages)
+const FRAME_IMAGE_PATH = import.meta.env.BASE_URL + "assets/frame.png";
 /**
  * =========================================================================
  */
