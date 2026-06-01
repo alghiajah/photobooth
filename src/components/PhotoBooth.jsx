@@ -184,6 +184,51 @@ export default function PhotoBooth() {
   };
 
   // 5. Menggambar Gabungan (Canvas Merging) setelah 3 Foto Diambil
+  // Mendeteksi batas kiri dan kanan dari strip berwarna untuk menghilangkan margin putih
+  const detectStripBoundaries = (frameImg) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(frameImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const data = imgData.data;
+
+    let leftBoundary = CANVAS_WIDTH;
+    let rightBoundary = 0;
+
+    // Deteksi warna non-putih
+    for (let y = 0; y < CANVAS_HEIGHT; y++) {
+      for (let x = 0; x < CANVAS_WIDTH; x++) {
+        const idx = (y * CANVAS_WIDTH + x) * 4;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const a = data[idx + 3];
+
+        // Piksel dianggap bagian dari strip jika tidak berwarna putih bersih dan memiliki alpha solid
+        const isWhite = r > 240 && g > 240 && b > 240;
+        if (!isWhite && a > 50) {
+          if (x < leftBoundary) leftBoundary = x;
+          if (x > rightBoundary) rightBoundary = x;
+        }
+      }
+    }
+
+    // Beri toleransi margin aman 8 piksel agar tidak memotong bayangan bingkai
+    leftBoundary = Math.max(0, leftBoundary - 8);
+    rightBoundary = Math.min(CANVAS_WIDTH - 1, rightBoundary + 8);
+    const width = rightBoundary - leftBoundary;
+
+    // Jika deteksi gagal (misal gambar putih polos), gunakan lebar penuh
+    if (width < 200 || leftBoundary >= rightBoundary) {
+      return { left: 0, right: CANVAS_WIDTH, width: CANVAS_WIDTH };
+    }
+
+    return { left: leftBoundary, right: rightBoundary, width };
+  };
+
   // Memindai gambar bingkai secara real-time untuk mendeteksi letak kotak hijau
   const detectGreenSlots = (frameImg) => {
     const canvas = document.createElement('canvas');
@@ -273,19 +318,21 @@ export default function PhotoBooth() {
     if (!canvas || photos.length < 3) return;
 
     const ctx = canvas.getContext('2d');
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
 
-    // -- LAYER 1: Background Dasar --
-    ctx.fillStyle = CANVAS_BG_COLOR;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    // Muat bingkai gambar terlebih dahulu untuk mendeteksi slot secara dinamis
+    // Muat bingkai gambar terlebih dahulu
     const frameImg = new Image();
     frameImg.onload = () => {
-      // Jalankan deteksi otomatis koordinat hijau pada bingkai
+      // 1. Deteksi batas strip (crop margin putih)
+      const boundaries = detectStripBoundaries(frameImg);
+      
+      // Sesuaikan lebar canvas hanya seukuran strip saja!
+      canvas.width = boundaries.width;
+      canvas.height = CANVAS_HEIGHT;
+
+      // 2. Jalankan deteksi otomatis koordinat hijau pada bingkai
       const detectedSlots = detectGreenSlots(frameImg);
       console.log("Sistem mendeteksi slot hijau:", detectedSlots);
+      console.log("Batas strip terdeteksi:", boundaries);
 
       // Muat ketiga foto jepretan
       let loadedCount = 0;
@@ -295,7 +342,7 @@ export default function PhotoBooth() {
           loadedCount++;
           if (loadedCount === 3) {
             // Gambar semua layer setelah foto termuat
-            renderLayers(imgElements, detectedSlots, frameImg, ctx);
+            renderLayers(imgElements, detectedSlots, boundaries, frameImg, ctx);
           }
         };
         img.src = src;
@@ -305,7 +352,8 @@ export default function PhotoBooth() {
 
     frameImg.onerror = () => {
       console.warn("Berkas bingkai eksternal gagal dimuat. Menggunakan render bingkai Fallback.");
-      // Fallback: Menggunakan koordinat default dan menggambar fallback frame
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
       let loadedCount = 0;
       const imgElements = photos.map((src) => {
         const img = new Image();
@@ -324,19 +372,24 @@ export default function PhotoBooth() {
     frameImg.src = FRAME_IMAGE_PATH;
   };
 
-  // Rendering utama dengan deteksi koordinat otomatis (Auto-Fit)
-  const renderLayers = (images, slots, frameImg, ctx) => {
-    // 1. Gambar foto-foto di koordinat yang terdeteksi
+  // Rendering utama dengan deteksi koordinat otomatis (Auto-Fit) & Auto-Crop
+  const renderLayers = (images, slots, boundaries, frameImg, ctx) => {
+    // Bersihkan canvas seukuran lebar strip yang baru
+    ctx.fillStyle = CANVAS_BG_COLOR;
+    ctx.fillRect(0, 0, boundaries.width, CANVAS_HEIGHT);
+
+    // 1. Gambar foto-foto di koordinat yang terdeteksi (digeser berdasarkan batas kiri strip)
     images.forEach((img, index) => {
-      // Dapatkan koordinat slot terdeteksi (gunakan default jika deteksi tidak menghasilkan 3 slot)
       const useDefault = slots.length !== 3;
       const slot = useDefault 
         ? { x: PHOTO_X, y: PHOTO_Y_COORDS[index], width: PHOTO_WIDTH, height: PHOTO_HEIGHT }
         : slots[index];
 
-      // Beri bleed 4px (perbesaran kecil) agar foto masuk sedikit di bawah bingkai untuk menghilangkan celah putih/hijau
+      // Beri bleed 4px (perbesaran kecil) agar foto masuk sedikit di bawah bingkai
       const bleed = 4;
-      const x = slot.x - bleed;
+      
+      // PENTING: Geser koordinat X foto ke kiri sebesar batas kiri strip agar sejajar dengan kanvas yang dipotong
+      const x = (slot.x - boundaries.left) - bleed;
       const y = slot.y - bleed;
       const w = slot.width + (bleed * 2);
       const h = slot.height + (bleed * 2);
@@ -361,7 +414,7 @@ export default function PhotoBooth() {
       ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
     });
 
-    // 2. Gambar bingkai dengan filter chroma key
+    // 2. Gambar bingkai dengan filter chroma key (hanya mengambil bagian strip tengah saja)
     const frameCanvas = document.createElement('canvas');
     frameCanvas.width = CANVAS_WIDTH;
     frameCanvas.height = CANVAS_HEIGHT;
@@ -384,7 +437,13 @@ export default function PhotoBooth() {
     }
 
     frameCtx.putImageData(frameData, 0, 0);
-    ctx.drawImage(frameCanvas, 0, 0);
+
+    // Gambar hanya area strip hasil crop dari frameCanvas ke canvas utama
+    ctx.drawImage(
+      frameCanvas, 
+      boundaries.left, 0, boundaries.width, CANVAS_HEIGHT, // Source region (hanya strip tengah)
+      0, 0, boundaries.width, CANVAS_HEIGHT                 // Destination region (mengisi penuh kanvas baru)
+    );
   };
 
   // Render cadangan menggunakan koordinat default (jika gambar gagal dimuat)
