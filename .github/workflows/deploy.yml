@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
 
 # Mengatur izin token GITHUB_TOKEN untuk mengizinkan deployment ke Pages
 permissions:
