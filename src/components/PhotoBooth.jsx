@@ -28,6 +28,59 @@ const CANVAS_BG_COLOR = "#ffffff";
 
 // Path Gambar Bingkai Eksternal Anda (Mendukung Subdirektori GitHub Pages)
 const FRAME_IMAGE_PATH = import.meta.env.BASE_URL + "assets/frame.png";
+
+/**
+ * =========================================================================
+ * KONFIGURASI TEMA BINGKAI PASTELES GIRLY
+ * =========================================================================
+ */
+const FRAMES_CONFIG = {
+  classic: {
+    id: 'classic',
+    name: 'Classic Studio',
+    desc: 'Bingkai bawaan',
+    color: '#FAF0F2',
+    textColor: '#D89CA3',
+    borderColor: '#FFFFFF',
+    stamp: 'LUMIÈRE STUDIO 🌸',
+  },
+  sakura: {
+    id: 'sakura',
+    name: 'Sweet Sakura',
+    desc: 'Blush pink ceria',
+    color: '#FFECEF',
+    textColor: '#E07A8A',
+    borderColor: '#FFF5F6',
+    stamp: 'Sweet Sakura 🌸',
+  },
+  lavender: {
+    id: 'lavender',
+    name: 'Lavender Mist',
+    desc: 'Lilac ungu mimpi',
+    color: '#F0E6FF',
+    textColor: '#8C70C8',
+    borderColor: '#FAF5FF',
+    stamp: 'Lavender Dream ✦',
+  },
+  sky: {
+    id: 'sky',
+    name: 'Sky Breeze',
+    desc: 'Baby blue segar',
+    color: '#E6F5FF',
+    textColor: '#5B8FB9',
+    borderColor: '#F0F9FF',
+    stamp: 'Sky Breeze ☁',
+  },
+  peach: {
+    id: 'peach',
+    name: 'Peach Blossom',
+    desc: 'Peach manis hangat',
+    color: '#FFF2E6',
+    textColor: '#D97A53',
+    borderColor: '#FFFBF7',
+    stamp: 'Peach Sweet 🍑',
+  }
+};
 /**
  * =========================================================================
  */
@@ -40,6 +93,7 @@ export default function PhotoBooth() {
 
   // State Manajemen Kamera & Siklus
   const [step, setStep] = useState('camera'); // 'camera' | 'preview'
+  const [selectedFrame, setSelectedFrame] = useState('classic'); // 'classic' | 'sakura' | 'lavender' | 'sky' | 'peach'
   const [hasPermission, setHasPermission] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [devices, setDevices] = useState([]);
@@ -319,7 +373,27 @@ export default function PhotoBooth() {
 
     const ctx = canvas.getContext('2d');
 
-    // Muat bingkai gambar terlebih dahulu
+    // 1. Draw custom dynamic girly frame if selected
+    if (selectedFrame !== 'classic') {
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+
+      let loadedCount = 0;
+      const imgElements = photos.map((src) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === 3) {
+            drawGirlyFrame(ctx, imgElements, FRAMES_CONFIG[selectedFrame]);
+          }
+        };
+        img.src = src;
+        return img;
+      });
+      return;
+    }
+
+    // 2. Otherwise run original logic (Classic Studio Frame)
     const frameImg = new Image();
     frameImg.onload = () => {
       // 1. Deteksi batas strip (crop margin putih)
@@ -370,6 +444,103 @@ export default function PhotoBooth() {
     };
 
     frameImg.src = FRAME_IMAGE_PATH;
+  };
+
+  // Menggambar bingkai kustom pastel girly secara dinamis
+  const drawGirlyFrame = (ctx, images, config) => {
+    ctx.save();
+    
+    // 1. Gambar latar belakang strip warna pastel
+    ctx.fillStyle = config.color;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    // 2. Gambar foto di slot yang ditentukan
+    images.forEach((img, index) => {
+      const x = PHOTO_X;
+      const y = PHOTO_Y_COORDS[index];
+      const w = PHOTO_WIDTH;
+      const h = PHOTO_HEIGHT;
+      
+      // Kartu latar putih tebal di belakang foto (efek border polaroid)
+      ctx.fillStyle = config.borderColor || "#ffffff";
+      ctx.beginPath();
+      ctx.roundRect(x - 12, y - 12, w + 24, h + 24, 12);
+      ctx.fill();
+
+      ctx.save();
+      // Potong agar ujung foto membulat halus
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 8);
+      ctx.clip();
+
+      // Logika Crop Center-Fit
+      const imgRatio = img.width / img.height;
+      const targetRatio = w / h;
+      let sx, sy, sWidth, sHeight;
+
+      if (imgRatio > targetRatio) {
+        sHeight = img.height;
+        sWidth = img.height * targetRatio;
+        sx = (img.width - sWidth) / 2;
+        sy = 0;
+      } else {
+        sWidth = img.width;
+        sHeight = img.width / targetRatio;
+        sx = 0;
+        sy = (img.height - sHeight) / 2;
+      }
+
+      ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
+      ctx.restore();
+
+      // Garis border tipis di keliling foto
+      ctx.strokeStyle = "rgba(0,0,0,0.05)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 8);
+      ctx.stroke();
+    });
+
+    // 3. Menggambar lubang sprocket strip film bernuansa imut
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+    if (config.id === 'sakura') ctx.fillStyle = "#FFD1D9";
+    if (config.id === 'lavender') ctx.fillStyle = "#DBC7FF";
+    if (config.id === 'sky') ctx.fillStyle = "#CCE9FF";
+    if (config.id === 'peach') ctx.fillStyle = "#FFE3CC";
+
+    const sprocketWidth = 16;
+    const sprocketHeight = 24;
+    const sprocketSpacing = 44;
+
+    for (let y = 30; y < CANVAS_HEIGHT - 30; y += sprocketHeight + sprocketSpacing) {
+      ctx.beginPath();
+      ctx.roundRect(20, y, sprocketWidth, sprocketHeight, 4);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.roundRect(CANVAS_WIDTH - 20 - sprocketWidth, y, sprocketWidth, sprocketHeight, 4);
+      ctx.fill();
+    }
+
+    // 4. Gambar stempel teks handwritten dan detail tanggal di bawah
+    const bottomY = CANVAS_HEIGHT - 80;
+    
+    ctx.fillStyle = config.textColor;
+    ctx.textAlign = 'center';
+    
+    // Teks handwritten menggunakan font Pacifico atau serif
+    ctx.font = "italic 48px 'Cormorant Garamond', serif";
+    ctx.fillText(config.stamp, CANVAS_WIDTH / 2, bottomY);
+
+    // Tanggal
+    ctx.font = "bold 16px 'Plus Jakarta Sans', sans-serif";
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+    const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(`STUDIO LUMIÈRE  •  ${formattedDate}  •  ${formattedTime}`, CANVAS_WIDTH / 2, bottomY + 45);
+
+    ctx.restore();
   };
 
   // Rendering utama dengan deteksi koordinat otomatis (Auto-Fit) & Auto-Crop
@@ -523,7 +694,7 @@ export default function PhotoBooth() {
       // Tunggu DOM termuat untuk kanvas, lalu gambar
       setTimeout(drawMergedCanvas, 100);
     }
-  }, [step, photos]);
+  }, [step, photos, selectedFrame]);
 
   // 6. Navigasi Aksi: Unduh & Ambil Ulang
   const handleDownload = () => {
@@ -547,6 +718,46 @@ export default function PhotoBooth() {
       {step === 'camera' && (
         <div className="w-full flex flex-col items-center gap-6">
           
+          {/* TATA LETAK PILIHAN BINGKAI (FRAME SELECTOR) */}
+          <div className="w-full flex flex-col gap-3.5 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-chic-border/40 shadow-sm shadow-pink-100/20">
+            <div className="flex flex-col">
+              <h3 className="text-sm font-bold text-chic-dark tracking-wide uppercase">Pilih Bingkai Foto</h3>
+              <p className="text-[11px] text-chic-gray">Tentukan warna & tema bingkai studio favoritmu sebelum sesi jepret dimulai</p>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 w-full">
+              {Object.values(FRAMES_CONFIG).map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSelectedFrame(f.id)}
+                  className={`relative flex flex-col items-center justify-between p-3 rounded-2xl border-2 text-center transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
+                    selectedFrame === f.id
+                      ? `border-chic-rose bg-white shadow-md shadow-pink-100/50 scale-102 ring-2 ring-chic-rose/10`
+                      : 'border-chic-border/30 bg-white/40 hover:bg-white/80 hover:border-chic-rose/30'
+                  }`}
+                >
+                  {/* Miniature strip mockup */}
+                  <div className="w-10 h-14 rounded border border-chic-border/60 shadow-xs flex flex-col justify-around p-1.5 mb-2.5" style={{ backgroundColor: f.color || '#ffffff' }}>
+                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
+                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
+                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
+                  </div>
+                  
+                  <div className="flex flex-col items-center">
+                    <span className="text-[11px] font-bold text-chic-dark leading-tight">{f.name}</span>
+                    <span className="text-[9px] text-chic-gray mt-0.5 leading-none">{f.desc}</span>
+                  </div>
+                  
+                  {selectedFrame === f.id && (
+                    <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-chic-rose text-white text-[8px] font-bold shadow-xs">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* CAMERA VIEWER WITH VANITY STUDIO MIRROR STYLE */}
           <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-neutral-900 border-[6px] border-white shadow-2xl shadow-pink-200/30 ring-1 ring-chic-rose/20">
             
