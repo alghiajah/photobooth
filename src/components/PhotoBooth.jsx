@@ -416,270 +416,282 @@ export default function PhotoBooth() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6">
+    <div className="w-full h-full min-h-0 flex flex-col justify-center overflow-hidden">
       
       {/* ---------------- TAMPILAN KAMERA ---------------- */}
       {step === 'camera' && (
-        <div className="w-full flex flex-col items-center gap-6">
+        <div className="w-full h-full min-h-0 flex flex-col md:flex-row items-stretch gap-4 md:gap-6 overflow-hidden">
           
-          {/* TATA LETAK PILIHAN BINGKAI (FRAME SELECTOR) */}
-          <div className="w-full flex flex-col gap-3.5 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-chic-border/40 shadow-sm shadow-pink-100/20">
-            <div className="flex flex-col">
-              <h3 className="text-sm font-bold text-chic-dark tracking-wide uppercase">Pilih Bingkai Foto</h3>
-              <p className="text-[11px] text-chic-gray">Tentukan warna & tema bingkai studio favoritmu sebelum sesi jepret dimulai</p>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full">
-              {Object.values(FRAMES_CONFIG).map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setSelectedFrame(f.id)}
-                  className={`relative flex flex-col items-center justify-between p-3 rounded-2xl border-2 text-center transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
-                    selectedFrame === f.id
-                      ? `border-chic-rose bg-white shadow-md shadow-pink-100/50 scale-102 ring-2 ring-chic-rose/10`
-                      : 'border-chic-border/30 bg-white/40 hover:bg-white/80 hover:border-chic-rose/30'
-                  }`}
-                >
-                  {/* Miniature strip mockup */}
-                  <div className="w-10 h-14 rounded border border-chic-border/60 shadow-xs flex flex-col justify-around p-1.5 mb-2.5" style={{ backgroundColor: f.color || '#ffffff' }}>
-                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
-                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
-                    <div className="w-full h-2 rounded-xs bg-chic-gray/10" />
+          {/* SISI KIRI: PRATINJAU KAMERA DENGAN OVERLAY TERINTEGRASI */}
+          <div className="flex-1 min-h-0 flex flex-col justify-center items-center relative w-full h-full">
+            <div className="relative max-h-full max-w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border-4 border-white shadow-xl shadow-pink-200/20 ring-1 ring-chic-rose/10 flex items-center justify-center">
+              
+              {/* Flash Overlay Effect */}
+              {isFlashActive && (
+                <div className="absolute inset-0 z-50 animate-flash" />
+              )}
+
+              {/* Izin Loading Kamera */}
+              {hasPermission === null && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-chic-gray gap-3 bg-neutral-950/40">
+                  <RefreshCw className="w-10 h-10 animate-spin text-chic-rose" />
+                  <p className="text-xs font-semibold tracking-wider font-mono text-white">Memuat Kamera WebRTC...</p>
+                </div>
+              )}
+
+              {/* Kamera Gagal Diakses */}
+              {hasPermission === false && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-chic-blush-soft/95 z-20">
+                  <AlertCircle className="w-12 h-12 text-chic-rose mb-3 animate-bounce" />
+                  <h3 className="text-base font-bold text-chic-dark mb-1">Akses Kamera Dibatalkan</h3>
+                  <p className="text-chic-gray max-w-xs text-[10px] leading-relaxed mb-4">{errorMsg}</p>
+                  <button 
+                    onClick={startCamera}
+                    className="px-4 py-2 rounded-full bg-gradient-to-r from-chic-rose to-chic-gold text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Hubungkan Ulang
+                  </button>
+                </div>
+              )}
+
+              {/* Video Stream */}
+              {hasPermission === true && (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
+                />
+              )}
+
+              {/* Countdown Overlay */}
+              {countdown !== null && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-xs z-30">
+                  <div className="text-8xl font-serif italic text-chic-rose text-chic-rose-glow animate-countdown select-none">
+                    {countdown}
                   </div>
-                  
-                  <div className="flex flex-col items-center">
-                    <span className="text-[11px] font-bold text-chic-dark leading-tight">{f.name}</span>
-                    <span className="text-[9px] text-chic-gray mt-0.5 leading-none">{f.desc}</span>
+                </div>
+              )}
+
+              {/* Visual Indikator Jepretan & Kamera Aktif */}
+              {hasPermission === true && (
+                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 z-10">
+                  <div className="flex justify-between w-full text-[9px] font-mono text-white/80">
+                    <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
+                      <span className={`w-2 h-2 rounded-full bg-chic-rose ${isCapturing ? 'animate-pulse' : ''}`} />
+                      <span>{isCapturing ? 'CAPTURING_SESSION' : 'STUDIO_STANDBY'}</span>
+                    </div>
+                    <div className="bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">3_CONSECUTIVE_POSES</div>
                   </div>
-                  
-                  {selectedFrame === f.id && (
-                    <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-chic-rose text-white text-[8px] font-bold shadow-xs">
-                      ✓
-                    </span>
+
+                  {isCapturing && (
+                    <div className="self-center bg-white/95 px-4 py-2 rounded-xl border border-chic-border text-center shadow-lg backdrop-blur-md">
+                      <p className="text-[8px] text-chic-gray font-mono tracking-widest uppercase">Pose Berjalan</p>
+                      <p className="text-xs font-bold text-chic-dark mt-0.5">Jepretan ke-{currentShot} dari 3</p>
+                    </div>
                   )}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* TATA LETAK PILIHAN FILTER KAMERA (FILTER SELECTOR) */}
-          <div className="w-full flex flex-col gap-3 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-chic-border/40 shadow-sm shadow-pink-100/20">
-            <div className="flex flex-col">
-              <h3 className="text-sm font-bold text-chic-dark tracking-wide uppercase">Pilih Efek Kamera</h3>
-              <p className="text-[11px] text-chic-gray">Terapkan filter estetik Webcam Toy ke kameramu</p>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 w-full">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setSelectedFilter(f.id)}
-                  className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border-2 text-center transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
-                    selectedFilter === f.id
-                      ? 'border-chic-rose bg-white shadow-md shadow-pink-100/50 text-chic-rose font-bold'
-                      : 'border-chic-border/30 bg-white/40 hover:bg-white/80 text-chic-dark font-medium'
-                  }`}
-                >
-                  <span className="text-[11px] leading-tight text-center">{f.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* CAMERA VIEWER WITH VANITY STUDIO MIRROR STYLE */}
-          <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden bg-neutral-900 border-[6px] border-white shadow-2xl shadow-pink-200/30 ring-1 ring-chic-rose/20">
-            
-            {/* Flash Overlay Effect */}
-            {isFlashActive && (
-              <div className="absolute inset-0 z-50 animate-flash" />
-            )}
-
-            {/* Izin Loading Kamera */}
-            {hasPermission === null && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-chic-gray gap-3">
-                <RefreshCw className="w-12 h-12 animate-spin text-chic-rose" />
-                <p className="text-sm font-semibold tracking-wider font-mono">Memuat Kamera WebRTC...</p>
-              </div>
-            )}
-
-            {/* Kamera Gagal Diakses */}
-            {hasPermission === false && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-chic-blush-soft/95">
-                <AlertCircle className="w-16 h-16 text-chic-rose mb-4 animate-bounce" />
-                <h3 className="text-xl font-bold text-chic-dark mb-2">Akses Kamera Dibatalkan</h3>
-                <p className="text-chic-gray max-w-md text-xs leading-relaxed mb-6">{errorMsg}</p>
-                <button 
-                  onClick={startCamera}
-                  className="px-6 py-2.5 rounded-full bg-gradient-to-r from-chic-rose to-chic-gold text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
-                >
-                  Hubungkan Ulang
-                </button>
-              </div>
-            )}
-
-            {/* Video Stream */}
-            {hasPermission === true && (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
-              />
-            )}
-
-            {/* Countdown Overlay */}
-            {countdown !== null && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-xs z-30">
-                <div className="text-9xl font-serif italic text-chic-rose text-chic-rose-glow animate-countdown select-none">
-                  {countdown}
-                </div>
-              </div>
-            )}
-
-            {/* Visual Indikator Jepretan & Kamera Aktif */}
-            {hasPermission === true && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 z-10">
-                <div className="flex justify-between w-full text-[10px] md:text-xs font-mono text-white/70">
-                  <div className="flex items-center gap-2 bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                    <span className={`w-2.5 h-2.5 rounded-full bg-chic-rose ${isCapturing ? 'animate-pulse' : ''}`} />
-                    <span>{isCapturing ? 'CAPTURING_SESSION' : 'STUDIO_STANDBY'}</span>
+                  <div className="flex justify-between w-full text-[9px] font-mono text-white/60">
+                    <div className="bg-black/30 px-1.5 py-0.5 rounded">FHD 1080P</div>
+                    <div className="bg-black/30 px-1.5 py-0.5 rounded">STUDIO: ONLINE</div>
                   </div>
-                  <div className="bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-lg">3_CONSECUTIVE_POSES</div>
                 </div>
+              )}
 
-                {isCapturing && (
-                  <div className="self-center bg-white/90 px-6 py-3 rounded-2xl border border-chic-border text-center shadow-xl backdrop-blur-md">
-                    <p className="text-[9px] text-chic-gray font-mono tracking-widest uppercase">Pose Berjalan</p>
-                    <p className="text-base font-bold text-chic-dark mt-0.5">Jepretan ke-{currentShot} dari 3</p>
-                  </div>
-                )}
-
-                <div className="flex justify-between w-full text-[10px] md:text-xs font-mono text-white/55">
-                  <div className="bg-black/25 px-2 py-0.5 rounded">FHD 1080P</div>
-                  <div className="bg-black/25 px-2 py-0.5 rounded">STUDIO: ONLINE</div>
+              {/* OVERLAY GALERI PREVIEW JEPRETAN (FLOATING THUMBNAILS) */}
+              {hasPermission === true && (
+                <div className="absolute bottom-3 left-3 right-3 z-20 flex gap-2 justify-center bg-black/40 backdrop-blur-md py-1.5 px-2 rounded-xl border border-white/10">
+                  {Array.from({ length: 3 }).map((_, index) => {
+                    const photoSrc = photos[index];
+                    return (
+                      <div key={index} className="relative w-14 h-10 md:w-16 md:h-12 rounded-lg overflow-hidden border border-white/60 bg-white/10 shadow flex-shrink-0 flex items-center justify-center">
+                        {photoSrc ? (
+                          <img src={photoSrc} className="w-full h-full object-cover" alt={`Pose ${index + 1}`} />
+                        ) : (
+                          <span className="text-[8px] text-white/50 font-mono">Pose {index + 1}</span>
+                        )}
+                        {photoSrc && (
+                          <span className="absolute bottom-0.5 right-0.5 bg-chic-rose text-white text-[7px] px-1 rounded-sm font-bold font-mono">
+                            #{index + 1}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
+              )}
+
+            </div>
           </div>
 
           {/* Canvas Penyimpan Sementara */}
           <canvas ref={tempCanvasRef} className="hidden" />
 
-          {/* Panel Kontrol Pengambilan Foto */}
-          {hasPermission === true && (
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-5 glass-panel-glow p-5 rounded-3xl border border-chic-border/40 shadow-xl shadow-pink-100/30">
-              {/* Pemilih Kamera */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs font-mono text-chic-gray tracking-wide">INPUT DEVICE:</span>
-                {devices.length > 1 ? (
-                  <select
-                    value={selectedDeviceId}
-                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                    className="bg-white text-chic-dark border border-chic-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-chic-rose/30 focus:border-chic-rose shadow-sm"
+          {/* SISI KANAN: PANEL OPSI & KONTROL (SIDEBAR) */}
+          <div className="w-full md:w-[320px] flex flex-col justify-center gap-3 min-h-0 overflow-y-auto no-scrollbar">
+            
+            {/* TATA LETAK PILIHAN BINGKAI (FRAME SELECTOR) */}
+            <div className="w-full flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-chic-border/40 shadow-xs">
+              <div className="flex flex-col">
+                <h3 className="text-xs font-bold text-chic-dark tracking-wide uppercase">Pilih Bingkai</h3>
+                <p className="text-[9px] text-chic-gray">Tentukan warna & tema bingkai studio</p>
+              </div>
+              
+              <div className="flex flex-row gap-2 overflow-x-auto pb-1 w-full no-scrollbar">
+                {Object.values(FRAMES_CONFIG).map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setSelectedFrame(f.id)}
+                    className={`relative flex-shrink-0 flex flex-row items-center gap-2 p-2 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
+                      selectedFrame === f.id
+                        ? 'border-chic-rose bg-white shadow-sm ring-1 ring-chic-rose/10'
+                        : 'border-chic-border/30 bg-white/40 hover:bg-white/80'
+                    }`}
                   >
-                    {devices.map((device, idx) => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Camera ${idx + 1}`}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-xs font-bold text-chic-dark bg-white border border-chic-border px-3 py-1.5 rounded-xl shadow-sm">
-                    {devices[0]?.label || "Kamera Utama"}
-                  </span>
-                )}
-              </div>
-
-              {/* Tombol Mulai Ambil 3 Foto */}
-              <button
-                onClick={startCaptureSession}
-                disabled={!isCameraReady || isCapturing}
-                className="flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-base shadow-lg shadow-pink-300/30 hover:scale-[1.02] active:scale-98 disabled:opacity-50 disabled:scale-100 transition-all w-full sm:w-auto"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                Mulai Pose (3x Foto)
-              </button>
-
-              {/* Status Mini */}
-              <div className="flex items-center gap-2 text-xs font-mono text-chic-gray">
-                <Zap className={`w-4 h-4 ${isCameraReady ? 'text-chic-rose' : 'text-chic-gray/50'}`} />
-                <span>{isCameraReady ? 'READY_BOOTH' : 'STREAMING...'}</span>
+                    {/* Miniature strip mockup */}
+                    <div className="w-6 h-8 rounded-sm border border-chic-border/60 flex flex-col justify-around p-0.5" style={{ backgroundColor: f.color || '#ffffff' }}>
+                      <div className="w-full h-1 bg-chic-gray/10 rounded-2xs" />
+                      <div className="w-full h-1 bg-chic-gray/10 rounded-2xs" />
+                      <div className="w-full h-1 bg-chic-gray/10 rounded-2xs" />
+                    </div>
+                    
+                    <div className="flex flex-col items-start pr-1">
+                      <span className="text-[10px] font-bold text-chic-dark leading-tight">{f.name}</span>
+                      <span className="text-[8px] text-chic-gray leading-none mt-0.5">{f.desc}</span>
+                    </div>
+                    
+                    {selectedFrame === f.id && (
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-chic-rose text-white text-[7px] font-bold shadow-xs">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          {/* Galeri Preview Sementara dari Foto yang Sudah Terjepret */}
-          {photos.length > 0 && (
-            <div className="w-full flex flex-col gap-3.5 mt-2 animate-scale-up">
-              <h4 className="text-xs font-mono text-chic-gray uppercase tracking-wider font-semibold">Jepretan Terkumpul:</h4>
-              <div className="grid grid-cols-3 gap-4">
-                {photos.map((src, index) => (
-                  <div key={index} className="relative aspect-[4/3] rounded-xl overflow-hidden border-4 border-white bg-white shadow-md shadow-pink-100/40">
-                    <img src={src} className="w-full h-full object-cover" alt={`Shot ${index + 1}`} />
-                    <span className="absolute top-2 left-2 bg-chic-rose text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold font-mono shadow">
-                      POSE #{index + 1}
+            {/* TATA LETAK PILIHAN FILTER KAMERA (FILTER SELECTOR) */}
+            <div className="w-full flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-chic-border/40 shadow-xs">
+              <div className="flex flex-col">
+                <h3 className="text-xs font-bold text-chic-dark tracking-wide uppercase">Pilih Efek Kamera</h3>
+                <p className="text-[9px] text-chic-gray">Terapkan filter estetik ke kamera</p>
+              </div>
+              
+              <div className="flex flex-row gap-2 overflow-x-auto pb-1 w-full no-scrollbar">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setSelectedFilter(f.id)}
+                    className={`flex-shrink-0 py-1.5 px-3 rounded-lg border text-center transition-all duration-200 hover:-translate-y-0.5 active:scale-95 text-[10px] ${
+                      selectedFilter === f.id
+                        ? 'border-chic-rose bg-white shadow-sm text-chic-rose font-bold'
+                        : 'border-chic-border/30 bg-white/40 hover:bg-white/80 text-chic-dark font-medium'
+                    }`}
+                  >
+                    <span>{f.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Panel Kontrol Pengambilan Foto */}
+            {hasPermission === true && (
+              <div className="w-full flex flex-col gap-3 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-chic-border/40 shadow-sm">
+                
+                {/* Pemilih Kamera */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-mono text-chic-gray tracking-wide">INPUT DEVICE:</span>
+                  {devices.length > 1 ? (
+                    <select
+                      value={selectedDeviceId}
+                      onChange={(e) => setSelectedDeviceId(e.target.value)}
+                      className="w-full bg-white text-chic-dark border border-chic-border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-chic-rose/30 focus:border-chic-rose shadow-sm"
+                    >
+                      {devices.map((device, idx) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${idx + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-[10px] font-bold text-chic-dark bg-white border border-chic-border px-2.5 py-1 rounded-lg shadow-sm block truncate">
+                      {devices[0]?.label || "Kamera Utama"}
                     </span>
+                  )}
+                </div>
+
+                {/* Tombol Mulai Ambil 3 Foto */}
+                <button
+                  onClick={startCaptureSession}
+                  disabled={!isCameraReady || isCapturing}
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-xs shadow-md hover:scale-[1.01] active:scale-99 disabled:opacity-50 disabled:scale-100 transition-all w-full"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  Mulai Pose (3x Foto)
+                </button>
+
+                {/* Status Mini */}
+                <div className="flex items-center justify-between text-[9px] font-mono text-chic-gray">
+                  <div className="flex items-center gap-1.5">
+                    <Zap className={`w-3.5 h-3.5 ${isCameraReady ? 'text-chic-rose' : 'text-chic-gray/50'}`} />
+                    <span>{isCameraReady ? 'BOOTH_READY' : 'STREAMING...'}</span>
                   </div>
-                ))}
-                {Array.from({ length: 3 - photos.length }).map((_, i) => (
-                  <div key={i} className="aspect-[4/3] rounded-xl border-2 border-dashed border-chic-border bg-white/40 flex items-center justify-center text-chic-gray/50 font-mono text-xs">
-                    Pose {photos.length + i + 1} ...
-                  </div>
-                ))}
+                  <span>3_SHOTS</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
         </div>
       )}
 
       {/* ---------------- TAMPILAN PREVIEW ---------------- */}
       {step === 'preview' && (
-        <div className="w-full flex flex-col lg:flex-row items-center lg:items-stretch gap-8 animate-scale-up">
+        <div className="w-full h-full min-h-0 flex flex-col md:flex-row items-stretch justify-center gap-6 overflow-hidden animate-scale-up">
           
           {/* Sisi Kiri: Canvas Pratinjau Strip Film */}
-          <div className="flex-1 flex justify-center items-center">
-            <div className="p-4 rounded-3xl border border-chic-border/40 bg-white shadow-2xl shadow-pink-200/20 max-w-sm w-full">
+          <div className="flex-1 min-h-0 flex justify-center items-center">
+            <div className="p-3 rounded-2xl border border-chic-border/40 bg-white shadow-lg h-full max-h-[55vh] md:max-h-[65vh] aspect-[12/27] flex items-center justify-center">
               <canvas
                 ref={resultCanvasRef}
-                className="w-full h-auto object-contain rounded-2xl shadow-md max-h-[75vh]"
+                className="max-h-full max-w-full object-contain rounded-xl shadow-sm"
               />
             </div>
           </div>
 
           {/* Sisi Kanan: Panel Unduh & Retake */}
-          <div className="w-full lg:w-80 flex flex-col justify-between gap-6 glass-panel-glow p-7 rounded-3xl border border-chic-border/40 shadow-2xl shadow-pink-100/30">
-            <div className="flex flex-col gap-5">
+          <div className="w-full md:w-[300px] flex flex-col justify-between gap-4 glass-panel-glow p-5 rounded-2xl border border-chic-border/40 shadow-md">
+            <div className="flex flex-col gap-4">
               <div>
-                <h3 className="text-xl font-bold text-chic-dark">Hasil Sesi Foto</h3>
-                <p className="text-xs text-chic-gray mt-1 leading-relaxed">3 jepretan Anda berhasil digabungkan dalam satu lembar strip film premium.</p>
+                <h3 className="text-base font-bold text-chic-dark">Hasil Sesi Foto</h3>
+                <p className="text-[10px] text-chic-gray mt-0.5 leading-relaxed">3 jepretan Anda berhasil digabungkan dalam satu lembar strip film premium.</p>
               </div>
 
-              <div className="bg-[#FFF9F9] p-4.5 rounded-2xl border border-chic-border/40 text-[11px] text-chic-gray space-y-3 shadow-sm">
+              <div className="bg-[#FFF9F9] p-3.5 rounded-xl border border-chic-border/40 text-[10px] text-chic-gray space-y-2.5 shadow-xs">
                 <div className="flex items-center justify-between text-chic-dark font-bold">
                   <span>Status Gabungan</span>
                   <span className="text-chic-rose">Sukses</span>
                 </div>
                 <hr className="border-chic-border/40" />
-                <p className="leading-relaxed">Bingkai studio dimuat dari berkas digital Anda. Jika berkas frame kustom tidak tersedia, sistem otomatis menggambar bingkai cadangan merah muda estetik.</p>
-                <p className="text-[10px] text-chic-rose font-medium leading-relaxed">Tip: Anda dapat langsung mengunduh gambar hasil akhir dalam format resolusi tinggi PNG.</p>
+                <p className="leading-relaxed">Bingkai studio dimuat dari berkas digital Anda. format resolusi tinggi PNG.</p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={handleDownload}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-sm shadow-lg shadow-pink-200/40 hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-xs shadow-md hover:scale-[1.01] active:scale-99 transition-all flex items-center justify-center gap-1.5"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-3.5 h-3.5" />
                 Unduh Strip (PNG)
               </button>
 
               <button
                 onClick={handleRetake}
-                className="w-full py-3 rounded-xl bg-white border border-chic-border text-chic-rose hover:bg-[#FFF0F2] font-semibold text-sm shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-white border border-chic-border text-chic-rose hover:bg-[#FFF0F2] font-semibold text-xs shadow-sm active:scale-99 transition-all flex items-center justify-center gap-1.5"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 Ambil Ulang Sesi
               </button>
             </div>
