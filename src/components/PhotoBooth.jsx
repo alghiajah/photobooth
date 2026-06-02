@@ -80,10 +80,17 @@ const FRAMES_CONFIG = {
  */
 const FILTERS = [
   { id: 'normal', name: 'Normal', filterStyle: '', canvasFilter: 'none' },
-  { id: 'mono', name: 'B&W Vintage', filterStyle: 'grayscale contrast-115 brightness-95', canvasFilter: 'grayscale(100%) contrast(115%) brightness(95%)' },
-  { id: 'vintage', name: 'Warm Sepia', filterStyle: 'sepia saturate-110 contrast-95 brightness-95', canvasFilter: 'sepia(100%) saturate(110%) contrast(95%) brightness(95%)' },
-  { id: 'sweet', name: 'Sweet Blush', filterStyle: 'saturate-125 brightness-105 contrast-95 sepia-[0.12] hue-rotate-[-10deg]', canvasFilter: 'saturate(1.25) brightness(1.05) contrast(0.95) sepia(0.12) hue-rotate(-10deg)' },
-  { id: 'chrome', name: 'High Chrome', filterStyle: 'contrast-130 brightness-95 saturate-110', canvasFilter: 'contrast(1.3) brightness(0.95) saturate(1.1)' }
+  { id: 'mono', name: 'B&W Vintage', filterStyle: 'grayscale contrast-[115%] brightness-[95%]', canvasFilter: 'grayscale(100%) contrast(115%) brightness(95%)' },
+  { id: 'vintage', name: 'Warm Sepia', filterStyle: 'sepia saturate-[110%] contrast-[95%] brightness-[95%]', canvasFilter: 'sepia(100%) saturate(110%) contrast(95%) brightness(95%)' },
+  { id: 'sweet', name: 'Sweet Blush', filterStyle: 'saturate-[125%] brightness-[105%] contrast-[95%] sepia-[0.12] hue-rotate-[-10deg]', canvasFilter: 'saturate(1.25) brightness(1.05) contrast(0.95) sepia(0.12) hue-rotate(-10deg)' },
+  { id: 'chrome', name: 'High Chrome', filterStyle: 'contrast-[130%] brightness-[95%] saturate-[110%]', canvasFilter: 'contrast(1.3) brightness(0.95) saturate(1.1)' },
+  { id: 'noir', name: 'Noir Classic', filterStyle: 'grayscale contrast-[170%] brightness-[90%]', canvasFilter: 'grayscale(100%) contrast(170%) brightness(90%)' },
+  { id: 'sunset', name: 'Sunset Glow', filterStyle: 'sepia-[0.25] saturate-[140%] brightness-[105%] contrast-[95%] hue-rotate-[-15deg]', canvasFilter: 'sepia(0.25) saturate(1.4) brightness(1.05) contrast(0.95) hue-rotate(-15deg)' },
+  { id: 'fuji', name: 'Fuji Green', filterStyle: 'sepia-[0.15] hue-rotate-[80deg] saturate-[130%] contrast-[105%]', canvasFilter: 'sepia(0.15) hue-rotate(80deg) saturate(1.3) contrast(1.05)' },
+  { id: 'cyber', name: 'Cyber Neon', filterStyle: 'hue-rotate-[190deg] saturate-[180%] contrast-[120%]', canvasFilter: 'hue-rotate(190deg) saturate(1.8) contrast(1.2)' },
+  { id: 'ice', name: 'Ice Breeze', filterStyle: 'hue-rotate-[150deg] saturate-[120%] brightness-[105%]', canvasFilter: 'hue-rotate(150deg) saturate(1.2) brightness(1.05)' },
+  { id: 'lavender_f', name: 'Lavender Dream', filterStyle: 'hue-rotate-[45deg] saturate-[125%] brightness-[105%] contrast-[95%] sepia-[10%]', canvasFilter: 'hue-rotate(45deg) saturate(1.25) brightness(1.05) contrast(0.95) sepia(0.1)' },
+  { id: 'negative', name: 'Cyber Negative', filterStyle: 'invert', canvasFilter: 'invert(100%)' }
 ];
 /**
  * =========================================================================
