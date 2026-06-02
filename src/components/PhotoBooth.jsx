@@ -478,8 +478,8 @@ export default function PhotoBooth() {
   const drawFallbackFrame = (ctx) => {
     ctx.save();
     
-    // Terapkan border luar strip film hitam mewah
-    ctx.fillStyle = "#111116";
+    // Terapkan border luar strip film blush pink mewah
+    ctx.fillStyle = "#FAF0F2"; // Chic blush pink background
     
     // Gambar bingkai samping kiri dan kanan (menghasilkan efek strip film analog)
     const sideMargin = 70;
@@ -488,25 +488,31 @@ export default function PhotoBooth() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, 90);
     ctx.fillRect(0, CANVAS_HEIGHT - 120, CANVAS_WIDTH, 120);
 
-    // Menggambar Lubang Sprocket (Lubang khas strip film analog)
-    ctx.fillStyle = "#050507";
+    // Menggambar Lubang Sprocket (Lubang khas strip film dengan aksen rose gold)
+    ctx.fillStyle = "#D89CA3"; // Accent rose
     const sprocketWidth = 20;
     const sprocketHeight = 30;
     const sprocketSpacing = 40;
 
     for (let y = 30; y < CANVAS_HEIGHT - 30; y += sprocketHeight + sprocketSpacing) {
-      ctx.fillRect(25, y, sprocketWidth, sprocketHeight);
-      ctx.fillRect(CANVAS_WIDTH - 25 - sprocketWidth, y, sprocketWidth, sprocketHeight);
+      // Rounded sprocket holes for premium look
+      ctx.beginPath();
+      ctx.roundRect(25, y, sprocketWidth, sprocketHeight, 6);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.roundRect(CANVAS_WIDTH - 25 - sprocketWidth, y, sprocketWidth, sprocketHeight, 6);
+      ctx.fill();
     }
 
-    // Tulis cap air tanggal/waktu retro oranye di bagian bawah kanvas
-    ctx.fillStyle = "#ea580c"; // Oranye retro digital
-    ctx.font = "bold 26px 'Courier New', monospace";
+    // Tulis cap air tanggal/waktu retro di bagian bawah kanvas dengan gaya tulisan premium
+    ctx.fillStyle = "#D89CA3"; // Rose gold text
+    ctx.font = "bold 24px 'Plus Jakarta Sans', sans-serif";
     ctx.textAlign = "right";
     const now = new Date();
     const formattedDate = now.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    ctx.fillText(`${formattedDate} ${formattedTime} | PHOTOBOOTH_3X_SHOTS`, CANVAS_WIDTH - sideMargin - 30, CANVAS_HEIGHT - 50);
+    ctx.fillText(`LUMIÈRE BOOTH  |  ${formattedDate} ${formattedTime}`, CANVAS_WIDTH - sideMargin - 30, CANVAS_HEIGHT - 50);
 
     ctx.restore();
   };
@@ -539,8 +545,10 @@ export default function PhotoBooth() {
       
       {/* ---------------- TAMPILAN KAMERA ---------------- */}
       {step === 'camera' && (
-        <div className="w-full flex flex-col items-center gap-4">
-          <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-dark-border bg-black glass-panel-glow">
+        <div className="w-full flex flex-col items-center gap-6">
+          
+          {/* CAMERA VIEWER WITH VANITY STUDIO MIRROR STYLE */}
+          <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-neutral-900 border-[6px] border-white shadow-2xl shadow-pink-200/30 ring-1 ring-chic-rose/20">
             
             {/* Flash Overlay Effect */}
             {isFlashActive && (
@@ -549,21 +557,21 @@ export default function PhotoBooth() {
 
             {/* Izin Loading Kamera */}
             {hasPermission === null && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3">
-                <RefreshCw className="w-12 h-12 animate-spin text-neon-purple" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-chic-gray gap-3">
+                <RefreshCw className="w-12 h-12 animate-spin text-chic-rose" />
                 <p className="text-sm font-semibold tracking-wider font-mono">Memuat Kamera WebRTC...</p>
               </div>
             )}
 
             {/* Kamera Gagal Diakses */}
             {hasPermission === false && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-dark-bg/95">
-                <AlertCircle className="w-16 h-16 text-red-500 mb-4 animate-bounce" />
-                <h3 className="text-xl font-bold text-white mb-2">Akses Kamera Dibatalkan</h3>
-                <p className="text-gray-400 max-w-md text-xs leading-relaxed mb-6">{errorMsg}</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-chic-blush-soft/95">
+                <AlertCircle className="w-16 h-16 text-chic-rose mb-4 animate-bounce" />
+                <h3 className="text-xl font-bold text-chic-dark mb-2">Akses Kamera Dibatalkan</h3>
+                <p className="text-chic-gray max-w-md text-xs leading-relaxed mb-6">{errorMsg}</p>
                 <button 
                   onClick={startCamera}
-                  className="px-6 py-2.5 rounded-full bg-gradient-to-r from-neon-purple to-neon-pink text-white text-sm font-bold hover:scale-105 transition-transform"
+                  className="px-6 py-2.5 rounded-full bg-gradient-to-r from-chic-rose to-chic-gold text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
                 >
                   Hubungkan Ulang
                 </button>
@@ -583,8 +591,8 @@ export default function PhotoBooth() {
 
             {/* Countdown Overlay */}
             {countdown !== null && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs z-30">
-                <div className="text-9xl font-extrabold text-neon-purple text-neon-purple-glow animate-countdown">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-xs z-30">
+                <div className="text-9xl font-serif italic text-chic-rose text-chic-rose-glow animate-countdown select-none">
                   {countdown}
                 </div>
               </div>
@@ -592,25 +600,25 @@ export default function PhotoBooth() {
 
             {/* Visual Indikator Jepretan & Kamera Aktif */}
             {hasPermission === true && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
-                <div className="flex justify-between w-full text-xs font-mono text-white/55">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full bg-red-500 ${isCapturing ? 'animate-pulse' : ''}`} />
-                    <span>{isCapturing ? 'CAPTURING_SESSION' : 'STANDBY'}</span>
+              <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 z-10">
+                <div className="flex justify-between w-full text-[10px] md:text-xs font-mono text-white/70">
+                  <div className="flex items-center gap-2 bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                    <span className={`w-2.5 h-2.5 rounded-full bg-chic-rose ${isCapturing ? 'animate-pulse' : ''}`} />
+                    <span>{isCapturing ? 'CAPTURING_SESSION' : 'STUDIO_STANDBY'}</span>
                   </div>
-                  <div>3_CONSECUTIVE_SHOTS</div>
+                  <div className="bg-black/35 backdrop-blur-xs px-2.5 py-1 rounded-lg">3_CONSECUTIVE_POSES</div>
                 </div>
 
                 {isCapturing && (
-                  <div className="self-center bg-black/75 px-5 py-2.5 rounded-2xl border border-neon-purple/40 text-center backdrop-blur-md">
-                    <p className="text-[10px] text-gray-400 font-mono tracking-wider uppercase">Sedang Berjalan</p>
-                    <p className="text-sm font-extrabold text-white">Jepretan ke-{currentShot} dari 3</p>
+                  <div className="self-center bg-white/90 px-6 py-3 rounded-2xl border border-chic-border text-center shadow-xl backdrop-blur-md">
+                    <p className="text-[9px] text-chic-gray font-mono tracking-widest uppercase">Pose Berjalan</p>
+                    <p className="text-base font-bold text-chic-dark mt-0.5">Jepretan ke-{currentShot} dari 3</p>
                   </div>
                 )}
 
-                <div className="flex justify-between w-full text-xs font-mono text-white/30">
-                  <div>1080P FHD</div>
-                  <div>DEVICE: ACTIVE</div>
+                <div className="flex justify-between w-full text-[10px] md:text-xs font-mono text-white/55">
+                  <div className="bg-black/25 px-2 py-0.5 rounded">FHD 1080P</div>
+                  <div className="bg-black/25 px-2 py-0.5 rounded">STUDIO: ONLINE</div>
                 </div>
               </div>
             )}
@@ -621,15 +629,15 @@ export default function PhotoBooth() {
 
           {/* Panel Kontrol Pengambilan Foto */}
           {hasPermission === true && (
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-dark-border">
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-5 glass-panel-glow p-5 rounded-3xl border border-chic-border/40 shadow-xl shadow-pink-100/30">
               {/* Pemilih Kamera */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs font-mono text-gray-400">INPUT:</span>
+                <span className="text-xs font-mono text-chic-gray tracking-wide">INPUT DEVICE:</span>
                 {devices.length > 1 ? (
                   <select
                     value={selectedDeviceId}
                     onChange={(e) => setSelectedDeviceId(e.target.value)}
-                    className="bg-dark-input text-gray-200 border border-dark-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-neon-purple"
+                    className="bg-white text-chic-dark border border-chic-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-chic-rose/30 focus:border-chic-rose shadow-sm"
                   >
                     {devices.map((device, idx) => (
                       <option key={device.deviceId} value={device.deviceId}>
@@ -638,7 +646,7 @@ export default function PhotoBooth() {
                     ))}
                   </select>
                 ) : (
-                  <span className="text-xs font-bold text-gray-300">
+                  <span className="text-xs font-bold text-chic-dark bg-white border border-chic-border px-3 py-1.5 rounded-xl shadow-sm">
                     {devices[0]?.label || "Kamera Utama"}
                   </span>
                 )}
@@ -648,15 +656,15 @@ export default function PhotoBooth() {
               <button
                 onClick={startCaptureSession}
                 disabled={!isCameraReady || isCapturing}
-                className="flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-neon-purple to-neon-blue text-white font-extrabold text-base shadow-lg shadow-purple-500/10 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all w-full sm:w-auto"
+                className="flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-base shadow-lg shadow-pink-300/30 hover:scale-[1.02] active:scale-98 disabled:opacity-50 disabled:scale-100 transition-all w-full sm:w-auto"
               >
                 <Play className="w-5 h-5 fill-current" />
-                Mulai Jepret (3x)
+                Mulai Pose (3x Foto)
               </button>
 
               {/* Status Mini */}
-              <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
-                <Zap className={`w-4 h-4 ${isCameraReady ? 'text-neon-blue' : 'text-gray-600'}`} />
+              <div className="flex items-center gap-2 text-xs font-mono text-chic-gray">
+                <Zap className={`w-4 h-4 ${isCameraReady ? 'text-chic-rose' : 'text-chic-gray/50'}`} />
                 <span>{isCameraReady ? 'READY_BOOTH' : 'STREAMING...'}</span>
               </div>
             </div>
@@ -664,20 +672,20 @@ export default function PhotoBooth() {
 
           {/* Galeri Preview Sementara dari Foto yang Sudah Terjepret */}
           {photos.length > 0 && (
-            <div className="w-full flex flex-col gap-3 mt-2 animate-scale-up">
-              <h4 className="text-xs font-mono text-gray-400 uppercase">Jepretan Terkumpul:</h4>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="w-full flex flex-col gap-3.5 mt-2 animate-scale-up">
+              <h4 className="text-xs font-mono text-chic-gray uppercase tracking-wider font-semibold">Jepretan Terkumpul:</h4>
+              <div className="grid grid-cols-3 gap-4">
                 {photos.map((src, index) => (
-                  <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-dark-border bg-dark-card">
+                  <div key={index} className="relative aspect-video rounded-xl overflow-hidden border-4 border-white bg-white shadow-md shadow-pink-100/40">
                     <img src={src} className="w-full h-full object-cover" alt={`Shot ${index + 1}`} />
-                    <span className="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px] font-mono text-neon-blue">
-                      #{index + 1}
+                    <span className="absolute top-2 left-2 bg-chic-rose text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold font-mono shadow">
+                      POSE #{index + 1}
                     </span>
                   </div>
                 ))}
                 {Array.from({ length: 3 - photos.length }).map((_, i) => (
-                  <div key={i} className="aspect-video rounded-xl border border-dashed border-gray-700 flex items-center justify-center text-gray-600 font-mono text-xs">
-                    Menunggu...
+                  <div key={i} className="aspect-video rounded-xl border-2 border-dashed border-chic-border bg-white/40 flex items-center justify-center text-chic-gray/50 font-mono text-xs">
+                    Pose {photos.length + i + 1} ...
                   </div>
                 ))}
               </div>
@@ -692,7 +700,7 @@ export default function PhotoBooth() {
           
           {/* Sisi Kiri: Canvas Pratinjau Strip Film */}
           <div className="flex-1 flex justify-center items-center">
-            <div className="p-3 rounded-3xl border border-dark-border bg-dark-card shadow-2xl max-w-sm w-full">
+            <div className="p-4 rounded-3xl border border-chic-border/40 bg-white shadow-2xl shadow-pink-200/20 max-w-sm w-full">
               <canvas
                 ref={resultCanvasRef}
                 className="w-full h-auto object-contain rounded-2xl shadow-md max-h-[75vh]"
@@ -701,28 +709,28 @@ export default function PhotoBooth() {
           </div>
 
           {/* Sisi Kanan: Panel Unduh & Retake */}
-          <div className="w-full lg:w-80 flex flex-col justify-between gap-6 glass-panel p-6 rounded-3xl border border-dark-border">
-            <div className="flex flex-col gap-4">
+          <div className="w-full lg:w-80 flex flex-col justify-between gap-6 glass-panel-glow p-7 rounded-3xl border border-chic-border/40 shadow-2xl shadow-pink-100/30">
+            <div className="flex flex-col gap-5">
               <div>
-                <h3 className="text-xl font-bold text-white">Hasil Sesi Foto</h3>
-                <p className="text-xs text-gray-400 mt-1">3 jepretan Anda berhasil digabungkan dalam satu lembar strip film.</p>
+                <h3 className="text-xl font-bold text-chic-dark">Hasil Sesi Foto</h3>
+                <p className="text-xs text-chic-gray mt-1 leading-relaxed">3 jepretan Anda berhasil digabungkan dalam satu lembar strip film premium.</p>
               </div>
 
-              <div className="bg-dark-bg/60 p-4 rounded-2xl border border-dark-border/50 text-[11px] text-gray-400 space-y-2.5">
-                <div className="flex items-center justify-between text-white font-semibold">
+              <div className="bg-[#FFF9F9] p-4.5 rounded-2xl border border-chic-border/40 text-[11px] text-chic-gray space-y-3 shadow-sm">
+                <div className="flex items-center justify-between text-chic-dark font-bold">
                   <span>Status Gabungan</span>
-                  <span className="text-neon-blue">Sukses</span>
+                  <span className="text-chic-rose">Sukses</span>
                 </div>
-                <hr className="border-dark-border" />
-                <p>Bingkai eksternal digambar dari <code>{FRAME_IMAGE_PATH}</code>. Jika tidak ada, sistem menggambar fallback strip film hitam.</p>
-                <p className="text-[10px] text-neon-purple-glow">Tip: Buka file komponen untuk mengubah koordinat foto agar sesuai dengan cetakan bingkai Anda.</p>
+                <hr className="border-chic-border/40" />
+                <p className="leading-relaxed">Bingkai studio dimuat dari berkas digital Anda. Jika berkas frame kustom tidak tersedia, sistem otomatis menggambar bingkai cadangan merah muda estetik.</p>
+                <p className="text-[10px] text-chic-rose font-medium leading-relaxed">Tip: Anda dapat langsung mengunduh gambar hasil akhir dalam format resolusi tinggi PNG.</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleDownload}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-neon-blue to-neon-purple text-white font-extrabold text-sm shadow-lg hover:shadow-cyan-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-sm shadow-lg shadow-pink-200/40 hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 Unduh Strip (PNG)
@@ -730,7 +738,7 @@ export default function PhotoBooth() {
 
               <button
                 onClick={handleRetake}
-                className="w-full py-3 rounded-xl bg-dark-bg border border-dark-border text-gray-300 hover:text-white hover:bg-gray-800/40 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-white border border-chic-border text-chic-rose hover:bg-[#FFF0F2] font-semibold text-sm shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
                 Ambil Ulang Sesi
