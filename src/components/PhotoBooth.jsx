@@ -10,17 +10,17 @@ import { Camera, AlertCircle, RefreshCw, Download, RotateCcw, Zap, Play } from '
  * =========================================================================
  */
 const CANVAS_WIDTH = 1200;   // Lebar total kanvas hasil akhir (dalam piksel)
-const CANVAS_HEIGHT = 1800;  // Tinggi total kanvas hasil akhir (dalam piksel)
+const CANVAS_HEIGHT = 2700;  // Tinggi total kanvas hasil akhir (dalam piksel)
 
 const PHOTO_WIDTH = 1000;    // Lebar masing-masing dari ke-3 foto pada kanvas
-const PHOTO_HEIGHT = 450;    // Tinggi masing-masing dari ke-3 foto pada kanvas
+const PHOTO_HEIGHT = 750;    // Tinggi masing-masing dari ke-3 foto pada kanvas (Aspek Rasio 4:3)
 const PHOTO_X = 100;         // Posisi X (horizontal) foto (tengah secara horizontal: (1200 - 1000) / 2)
 
 // Posisi Y (vertikal) untuk masing-masing foto (Jepretan 1, 2, dan 3)
 const PHOTO_Y_COORDS = [
   120,   // Jepretan 1 (Foto paling atas)
-  630,   // Jepretan 2 (Foto di tengah)
-  1140   // Jepretan 3 (Foto paling bawah)
+  930,   // Jepretan 2 (Foto di tengah)
+  1740   // Jepretan 3 (Foto paling bawah)
 ];
 
 // Warna Latar Belakang Kanvas (Background Layer dasar di bawah foto)
@@ -134,7 +134,7 @@ export default function PhotoBooth() {
     const constraints = {
       video: {
         deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-        width: { ideal: 1920 },
+        width: { ideal: 1440 },
         height: { ideal: 1080 }
       },
       audio: false
@@ -759,7 +759,7 @@ export default function PhotoBooth() {
           </div>
 
           {/* CAMERA VIEWER WITH VANITY STUDIO MIRROR STYLE */}
-          <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-neutral-900 border-[6px] border-white shadow-2xl shadow-pink-200/30 ring-1 ring-chic-rose/20">
+          <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden bg-neutral-900 border-[6px] border-white shadow-2xl shadow-pink-200/30 ring-1 ring-chic-rose/20">
             
             {/* Flash Overlay Effect */}
             {isFlashActive && (
@@ -887,7 +887,7 @@ export default function PhotoBooth() {
               <h4 className="text-xs font-mono text-chic-gray uppercase tracking-wider font-semibold">Jepretan Terkumpul:</h4>
               <div className="grid grid-cols-3 gap-4">
                 {photos.map((src, index) => (
-                  <div key={index} className="relative aspect-video rounded-xl overflow-hidden border-4 border-white bg-white shadow-md shadow-pink-100/40">
+                  <div key={index} className="relative aspect-[4/3] rounded-xl overflow-hidden border-4 border-white bg-white shadow-md shadow-pink-100/40">
                     <img src={src} className="w-full h-full object-cover" alt={`Shot ${index + 1}`} />
                     <span className="absolute top-2 left-2 bg-chic-rose text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold font-mono shadow">
                       POSE #{index + 1}
@@ -895,7 +895,7 @@ export default function PhotoBooth() {
                   </div>
                 ))}
                 {Array.from({ length: 3 - photos.length }).map((_, i) => (
-                  <div key={i} className="aspect-video rounded-xl border-2 border-dashed border-chic-border bg-white/40 flex items-center justify-center text-chic-gray/50 font-mono text-xs">
+                  <div key={i} className="aspect-[4/3] rounded-xl border-2 border-dashed border-chic-border bg-white/40 flex items-center justify-center text-chic-gray/50 font-mono text-xs">
                     Pose {photos.length + i + 1} ...
                   </div>
                 ))}
