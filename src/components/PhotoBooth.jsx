@@ -9,25 +9,125 @@ import { Camera, AlertCircle, RefreshCw, Download, RotateCcw, Zap, Play } from '
  * lubang (transparent windows) pada desain bingkai (/assets/frame.png) Anda.
  * =========================================================================
  */
-const CANVAS_WIDTH = 1200;   // Lebar total kanvas hasil akhir (dalam piksel)
-const CANVAS_HEIGHT = 2700;  // Tinggi total kanvas hasil akhir (dalam piksel)
-
-const PHOTO_WIDTH = 1000;    // Lebar masing-masing dari ke-3 foto pada kanvas
-const PHOTO_HEIGHT = 750;    // Tinggi masing-masing dari ke-3 foto pada kanvas (Aspek Rasio 4:3)
-const PHOTO_X = 100;         // Posisi X (horizontal) foto (tengah secara horizontal: (1200 - 1000) / 2)
-
-// Posisi Y (vertikal) untuk masing-masing foto (Jepretan 1, 2, dan 3)
-const PHOTO_Y_COORDS = [
-  120,   // Jepretan 1 (Foto paling atas)
-  930,   // Jepretan 2 (Foto di tengah)
-  1740   // Jepretan 3 (Foto paling bawah)
-];
+/**
+ * =========================================================================
+ * KONFIGURASI TATA LETAK GRID FOTO (DYNAMIC GRID CONFIG)
+ * =========================================================================
+ */
+const LAYOUTS_CONFIG = {
+  strip_3: {
+    id: 'strip_3',
+    name: '3 Photos',
+    desc: 'Strip Vertikal Klasik',
+    photoCount: 3,
+    canvasWidth: 1200,
+    canvasHeight: 2700,
+    getCoords: () => [
+      { x: 100, y: 120, w: 1000, h: 750 },
+      { x: 100, y: 930, w: 1000, h: 750 },
+      { x: 100, y: 1740, w: 1000, h: 750 }
+    ],
+    textY: 2620,
+    type: 'vertical'
+  },
+  strip_2: {
+    id: 'strip_2',
+    name: '2 Photos',
+    desc: 'Strip Vertikal Ganda',
+    photoCount: 2,
+    canvasWidth: 1200,
+    canvasHeight: 2000,
+    getCoords: () => [
+      { x: 100, y: 150, w: 1000, h: 750 },
+      { x: 100, y: 1000, w: 1000, h: 750 }
+    ],
+    textY: 1910,
+    type: 'vertical'
+  },
+  strip_4: {
+    id: 'strip_4',
+    name: '4 Photos',
+    desc: 'Strip Vertikal Quad',
+    photoCount: 4,
+    canvasWidth: 1200,
+    canvasHeight: 3400,
+    getCoords: () => [
+      { x: 100, y: 100, w: 1000, h: 750 },
+      { x: 100, y: 910, w: 1000, h: 750 },
+      { x: 100, y: 1720, w: 1000, h: 750 },
+      { x: 100, y: 2530, w: 1000, h: 750 }
+    ],
+    textY: 3310,
+    type: 'vertical'
+  },
+  wide_2: {
+    id: 'wide_2',
+    name: '2 Photos (H)',
+    desc: 'Berdampingan Mendatar',
+    photoCount: 2,
+    canvasWidth: 2200,
+    canvasHeight: 1200,
+    getCoords: () => [
+      { x: 100, y: 150, w: 960, h: 720 },
+      { x: 1140, y: 150, w: 960, h: 720 }
+    ],
+    textY: 1050,
+    type: 'horizontal'
+  },
+  grid_4: {
+    id: 'grid_4',
+    name: '4 Photos (G)',
+    desc: 'Grid Simetris 2x2',
+    photoCount: 4,
+    canvasWidth: 2200,
+    canvasHeight: 1850,
+    getCoords: () => [
+      { x: 100, y: 120, w: 960, h: 720 },
+      { x: 1140, y: 120, w: 960, h: 720 },
+      { x: 100, y: 920, w: 960, h: 720 },
+      { x: 1140, y: 920, w: 960, h: 720 }
+    ],
+    textY: 1750,
+    type: 'grid'
+  },
+  grid_9: {
+    id: 'grid_9',
+    name: '9 Photos',
+    desc: 'Mega Grid 3x3',
+    photoCount: 9,
+    canvasWidth: 2200,
+    canvasHeight: 2200,
+    getCoords: () => {
+      const coords = [];
+      const w = 600;
+      const h = 450;
+      const xStart = 100;
+      const yStart = 120;
+      const xGap = 80;
+      const yGap = 80;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          coords.push({
+            x: xStart + c * (w + xGap),
+            y: yStart + r * (h + yGap),
+            w,
+            h
+          });
+        }
+      }
+      return coords;
+    },
+    textY: 1980,
+    type: 'grid'
+  }
+};
 
 // Warna Latar Belakang Kanvas (Background Layer dasar di bawah foto)
 const CANVAS_BG_COLOR = "#ffffff"; 
 
 // Path Gambar Bingkai Eksternal Anda (Mendukung Subdirektori GitHub Pages)
 const FRAME_IMAGE_PATH = import.meta.env.BASE_URL + "assets/frame.png";
+
 
 /**
  * =========================================================================
@@ -96,7 +196,7 @@ const FILTERS = [
  * =========================================================================
  */
 
-export default function PhotoBooth() {
+export default function PhotoBooth({ currentUser }) {
   const videoRef = useRef(null);
   const tempCanvasRef = useRef(null);
   const resultCanvasRef = useRef(null);
@@ -105,6 +205,7 @@ export default function PhotoBooth() {
   // State Manajemen Kamera & Siklus
   const [step, setStep] = useState('camera'); // 'camera' | 'preview'
   const [selectedFrame, setSelectedFrame] = useState('sakura'); // 'sakura' | 'lavender' | 'sky' | 'peach'
+  const [selectedLayout, setSelectedLayout] = useState('strip_3'); // strip_3 | strip_2 | strip_4 | wide_2 | grid_4 | grid_9
   const [selectedFilter, setSelectedFilter] = useState('normal'); // normal | mono | vintage | sweet | chrome
   const [hasPermission, setHasPermission] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -112,10 +213,10 @@ export default function PhotoBooth() {
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [isCameraReady, setIsCameraReady] = useState(false);
 
-  // State Pengambilan Foto Beruntun (3-Shot Loop)
-  const [photos, setPhotos] = useState([]); // Menampung 3 base64 foto
+  // State Pengambilan Foto Beruntun (Dynamic Loop)
+  const [photos, setPhotos] = useState([]); // Menampung base64 foto-foto hasil jepretan
   const [isCapturing, setIsCapturing] = useState(false);
-  const [currentShot, setCurrentShot] = useState(0); // 1, 2, 3
+  const [currentShot, setCurrentShot] = useState(0); // 1, 2, 3, dst.
   const [countdown, setCountdown] = useState(null); // 3, 2, 1, null
   const [isFlashActive, setIsFlashActive] = useState(false);
 
@@ -235,15 +336,16 @@ export default function PhotoBooth() {
     return canvas.toDataURL('image/jpeg', 0.95);
   };
 
-  // 4. Siklus Pengambilan 3 Foto Beruntun (3-Shot Loop)
+  // 4. Siklus Pengambilan Foto Beruntun (Dynamic Grid Loop)
   const startCaptureSession = async () => {
     if (!isCameraReady || isCapturing) return;
 
+    const layout = LAYOUTS_CONFIG[selectedLayout];
     setIsCapturing(true);
     setPhotos([]);
     
-    // Perulangan mengambil 3 foto
-    for (let shot = 1; shot <= 3; shot++) {
+    // Perulangan mengambil foto sesuai jumlah grid
+    for (let shot = 1; shot <= layout.photoCount; shot++) {
       setCurrentShot(shot);
 
       // Hitung Mundur 3.. 2.. 1..
@@ -268,7 +370,7 @@ export default function PhotoBooth() {
       }
 
       // Jeda 1.5 detik agar pengguna bersiap untuk pose berikutnya (kecuali setelah jepretan terakhir)
-      if (shot < 3) {
+      if (shot < layout.photoCount) {
         await sleep(1500);
       }
     }
@@ -277,24 +379,25 @@ export default function PhotoBooth() {
     setStep('preview');
   };
 
-  // 5. Menggambar Gabungan (Canvas Merging) setelah 3 Foto Diambil
+  // 5. Menggambar Gabungan (Canvas Merging) setelah Foto Diambil
   const drawMergedCanvas = () => {
     const canvas = resultCanvasRef.current;
-    if (!canvas || photos.length < 3) return;
+    const layout = LAYOUTS_CONFIG[selectedLayout];
+    if (!canvas || photos.length < layout.photoCount) return;
 
     const ctx = canvas.getContext('2d');
 
     // Menggambar bingkai dinamis terpilih
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+    canvas.width = layout.canvasWidth;
+    canvas.height = layout.canvasHeight;
 
     let loadedCount = 0;
     const imgElements = photos.map((src) => {
       const img = new Image();
       img.onload = () => {
         loadedCount++;
-        if (loadedCount === 3) {
-          drawGirlyFrame(ctx, imgElements, FRAMES_CONFIG[selectedFrame]);
+        if (loadedCount === layout.photoCount) {
+          drawGirlyFrame(ctx, imgElements, FRAMES_CONFIG[selectedFrame], layout);
         }
       };
       img.src = src;
@@ -303,19 +406,19 @@ export default function PhotoBooth() {
   };
 
   // Menggambar bingkai kustom pastel girly secara dinamis pada kanvas
-  const drawGirlyFrame = (ctx, images, config) => {
+  const drawGirlyFrame = (ctx, images, config, layout) => {
     ctx.save();
     
     // 1. Gambar latar belakang strip warna pastel
     ctx.fillStyle = config.color;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight);
     
+    const coords = layout.getCoords();
+
     // 2. Gambar foto di slot yang ditentukan
     images.forEach((img, index) => {
-      const x = PHOTO_X;
-      const y = PHOTO_Y_COORDS[index];
-      const w = PHOTO_WIDTH;
-      const h = PHOTO_HEIGHT;
+      const coord = coords[index] || { x: 100, y: 100, w: 1000, h: 750 };
+      const { x, y, w, h } = coord;
       
       // Kartu latar putih tebal di belakang foto (efek border polaroid)
       ctx.fillStyle = config.borderColor || "#ffffff";
@@ -357,36 +460,84 @@ export default function PhotoBooth() {
       ctx.stroke();
     });
 
-    // 3. Menggambar lubang sprocket strip film bernuansa imut
-    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-    if (config.id === 'sakura') ctx.fillStyle = "#FFD1D9";
-    if (config.id === 'lavender') ctx.fillStyle = "#DBC7FF";
-    if (config.id === 'sky') ctx.fillStyle = "#CCE9FF";
-    if (config.id === 'peach') ctx.fillStyle = "#FFE3CC";
+    // 3. Menggambar elemen hiasan (sprocket film untuk vertical, atau ornamen bintang/hati untuk grid/horizontal)
+    if (layout.type === 'vertical') {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      if (config.id === 'sakura') ctx.fillStyle = "#FFD1D9";
+      if (config.id === 'lavender') ctx.fillStyle = "#DBC7FF";
+      if (config.id === 'sky') ctx.fillStyle = "#CCE9FF";
+      if (config.id === 'peach') ctx.fillStyle = "#FFE3CC";
 
-    const sprocketWidth = 16;
-    const sprocketHeight = 24;
-    const sprocketSpacing = 44;
+      const sprocketWidth = 16;
+      const sprocketHeight = 24;
+      const sprocketSpacing = 44;
 
-    for (let y = 30; y < CANVAS_HEIGHT - 30; y += sprocketHeight + sprocketSpacing) {
-      ctx.beginPath();
-      ctx.roundRect(20, y, sprocketWidth, sprocketHeight, 4);
-      ctx.fill();
+      for (let y = 30; y < layout.canvasHeight - 30; y += sprocketHeight + sprocketSpacing) {
+        ctx.beginPath();
+        ctx.roundRect(20, y, sprocketWidth, sprocketHeight, 4);
+        ctx.fill();
 
-      ctx.beginPath();
-      ctx.roundRect(CANVAS_WIDTH - 20 - sprocketWidth, y, sprocketWidth, sprocketHeight, 4);
-      ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(layout.canvasWidth - 20 - sprocketWidth, y, sprocketWidth, sprocketHeight, 4);
+        ctx.fill();
+      }
+    } else {
+      // Ornamen dekorasi hati & bintang imut untuk layout grid/horizontal
+      ctx.fillStyle = config.textColor;
+      
+      const drawMiniHeart = (hx, hy, size) => {
+        ctx.beginPath();
+        ctx.moveTo(hx, hy + size / 4);
+        ctx.quadraticCurveTo(hx, hy, hx - size / 2, hy);
+        ctx.quadraticCurveTo(hx - size, hy, hx - size, hy + size / 2);
+        ctx.quadraticCurveTo(hx - size, hy + size, hx, hy + size * 1.5);
+        ctx.quadraticCurveTo(hx + size, hy + size, hx + size, hy + size / 2);
+        ctx.quadraticCurveTo(hx + size, hy, hx + size / 2, hy);
+        ctx.quadraticCurveTo(hx, hy, hx, hy + size / 4);
+        ctx.fill();
+      };
+
+      const drawMiniStar = (cx, cy, spikes, outerRadius, innerRadius) => {
+        let rot = Math.PI / 2 * 3;
+        let sx = cx;
+        let sy = cy;
+        let step = Math.PI / spikes;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius)
+        for (let i = 0; i < spikes; i++) {
+          sx = cx + Math.cos(rot) * outerRadius;
+          sy = cy + Math.sin(rot) * outerRadius;
+          ctx.lineTo(sx, sy)
+          rot += step
+
+          sx = cx + Math.cos(rot) * innerRadius;
+          sy = cy + Math.sin(rot) * innerRadius;
+          ctx.lineTo(sx, sy)
+          rot += step
+        }
+        ctx.lineTo(cx, cy - outerRadius)
+        ctx.closePath();
+        ctx.fill();
+      };
+
+      // Terapkan beberapa dekorasi kecil imut di margin atas
+      drawMiniHeart(60, 60, 16);
+      drawMiniHeart(layout.canvasWidth - 60, 60, 16);
+      drawMiniStar(layout.canvasWidth / 2 - 180, 60, 4, 12, 5);
+      drawMiniStar(layout.canvasWidth / 2 + 180, 60, 4, 12, 5);
     }
 
     // 4. Gambar stempel teks handwritten dan detail tanggal di bawah
-    const bottomY = CANVAS_HEIGHT - 80;
+    const bottomY = layout.textY;
     
     ctx.fillStyle = config.textColor;
     ctx.textAlign = 'center';
     
     // Teks handwritten menggunakan font Pacifico atau serif
     ctx.font = "italic 48px 'Cormorant Garamond', serif";
-    ctx.fillText(config.stamp, CANVAS_WIDTH / 2, bottomY);
+    const userStamp = currentUser ? `${config.stamp} • ${currentUser.name} ✦` : config.stamp;
+    ctx.fillText(userStamp, layout.canvasWidth / 2, bottomY);
 
     // Tanggal
     ctx.font = "bold 16px 'Plus Jakarta Sans', sans-serif";
@@ -394,18 +545,19 @@ export default function PhotoBooth() {
     const now = new Date();
     const formattedDate = now.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
     const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    ctx.fillText(`STUDIO LUMIÈRE  •  ${formattedDate}  •  ${formattedTime}`, CANVAS_WIDTH / 2, bottomY + 45);
+    ctx.fillText(`STUDIO LUMIÈRE  •  ${formattedDate}  •  ${formattedTime}`, layout.canvasWidth / 2, bottomY + 45);
 
     ctx.restore();
   };
 
   // Efek gambar kanvas dipicu ketika langkah pratinjau aktif
   useEffect(() => {
-    if (step === 'preview' && photos.length === 3) {
+    const layout = LAYOUTS_CONFIG[selectedLayout];
+    if (step === 'preview' && photos.length === layout.photoCount) {
       // Tunggu DOM termuat untuk kanvas, lalu gambar
       setTimeout(drawMergedCanvas, 100);
     }
-  }, [step, photos, selectedFrame]);
+  }, [step, photos, selectedFrame, selectedLayout]);
 
   // 6. Navigasi Aksi: Unduh & Ambil Ulang
   const handleDownload = () => {
@@ -489,13 +641,17 @@ export default function PhotoBooth() {
                       <span className={`w-2 h-2 rounded-full bg-chic-rose ${isCapturing ? 'animate-pulse' : ''}`} />
                       <span>{isCapturing ? 'CAPTURING_SESSION' : 'STUDIO_STANDBY'}</span>
                     </div>
-                    <div className="bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">3_CONSECUTIVE_POSES</div>
+                    <div className="bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
+                      {LAYOUTS_CONFIG[selectedLayout].photoCount}_CONSECUTIVE_POSES
+                    </div>
                   </div>
 
                   {isCapturing && (
                     <div className="self-center bg-white/95 px-4 py-2 rounded-xl border border-chic-border text-center shadow-lg backdrop-blur-md">
                       <p className="text-[8px] text-chic-gray font-mono tracking-widest uppercase">Pose Berjalan</p>
-                      <p className="text-xs font-bold text-chic-dark mt-0.5">Jepretan ke-{currentShot} dari 3</p>
+                      <p className="text-xs font-bold text-chic-dark mt-0.5">
+                        Jepretan ke-{currentShot} dari {LAYOUTS_CONFIG[selectedLayout].photoCount}
+                      </p>
                     </div>
                   )}
 
@@ -508,19 +664,19 @@ export default function PhotoBooth() {
 
               {/* OVERLAY GALERI PREVIEW JEPRETAN (FLOATING THUMBNAILS) */}
               {hasPermission === true && (
-                <div className="absolute bottom-3 left-3 right-3 z-20 flex gap-2 justify-center bg-black/40 backdrop-blur-md py-1.5 px-2 rounded-xl border border-white/10">
-                  {Array.from({ length: 3 }).map((_, index) => {
+                <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap gap-1.5 justify-center bg-black/40 backdrop-blur-md py-1.5 px-2 rounded-xl border border-white/10 max-h-[85px] overflow-y-auto no-scrollbar">
+                  {Array.from({ length: LAYOUTS_CONFIG[selectedLayout].photoCount }).map((_, index) => {
                     const photoSrc = photos[index];
                     return (
-                      <div key={index} className="relative w-14 h-10 md:w-16 md:h-12 rounded-lg overflow-hidden border border-white/60 bg-white/10 shadow flex-shrink-0 flex items-center justify-center">
+                      <div key={index} className="relative w-12 h-9 md:w-14 md:h-10 rounded-lg overflow-hidden border border-white/40 bg-white/10 shadow-sm flex-shrink-0 flex items-center justify-center">
                         {photoSrc ? (
-                          <img src={photoSrc} className="w-full h-full object-cover" alt={`Pose ${index + 1}`} />
+                          <img src={photoSrc} className="w-full h-full object-cover animate-scale-up" alt={`Pose ${index + 1}`} />
                         ) : (
-                          <span className="text-[8px] text-white/50 font-mono">Pose {index + 1}</span>
+                          <span className="text-[8px] text-white/50 font-mono">#{index + 1}</span>
                         )}
                         {photoSrc && (
                           <span className="absolute bottom-0.5 right-0.5 bg-chic-rose text-white text-[7px] px-1 rounded-sm font-bold font-mono">
-                            #{index + 1}
+                            ✓
                           </span>
                         )}
                       </div>
@@ -578,6 +734,99 @@ export default function PhotoBooth() {
               </div>
             </div>
 
+            {/* TATA LETAK PILIHAN LAYOUT GRID (GRID SELECTOR) */}
+            <div className="w-full flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-chic-border/40 shadow-xs">
+              <div className="flex flex-col">
+                <h3 className="text-xs font-bold text-chic-dark tracking-wide uppercase">Pilih Layout Grid</h3>
+                <p className="text-[9px] text-chic-gray">Format pose dan layout foto studio</p>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-1.5">
+                {Object.values(LAYOUTS_CONFIG).map((layout) => {
+                  const isSelected = selectedLayout === layout.id;
+                  return (
+                    <button
+                      key={layout.id}
+                      onClick={() => {
+                        if (!isCapturing) {
+                          setSelectedLayout(layout.id);
+                          setPhotos([]);
+                        }
+                      }}
+                      disabled={isCapturing}
+                      className={`relative flex flex-col items-center justify-between p-1.5 rounded-xl border transition-all duration-200 ${
+                        isCapturing ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-0.5 active:scale-95'
+                      } ${
+                        isSelected
+                          ? 'border-chic-rose bg-white shadow-sm ring-1 ring-chic-rose/10'
+                          : 'border-chic-border/30 bg-white/40 hover:bg-white/80'
+                      }`}
+                    >
+                      {/* Representasi Visual Grid Mini */}
+                      <div className="h-9 w-full flex items-center justify-center mb-1 bg-[#F5E6E8]/30 rounded-lg border border-chic-border/10 p-1">
+                        {layout.id === 'strip_3' && (
+                          <div className="w-3.5 h-7 bg-neutral-900/10 border border-neutral-600/30 rounded-xs flex flex-col justify-between p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                          </div>
+                        )}
+                        {layout.id === 'strip_2' && (
+                          <div className="w-3.5 h-7 bg-neutral-900/10 border border-neutral-600/30 rounded-xs flex flex-col justify-between p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                          </div>
+                        )}
+                        {layout.id === 'strip_4' && (
+                          <div className="w-3.5 h-7 bg-neutral-900/10 border border-neutral-600/30 rounded-xs flex flex-col justify-between p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                          </div>
+                        )}
+                        {layout.id === 'wide_2' && (
+                          <div className="w-6.5 h-4.5 bg-neutral-900/10 border border-neutral-600/30 rounded-xs flex flex-row justify-between p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                            <div className="bg-neutral-600/50 flex-1 rounded-3xs" />
+                          </div>
+                        )}
+                        {layout.id === 'grid_4' && (
+                          <div className="w-5.5 h-5.5 bg-neutral-900/10 border border-neutral-600/30 rounded-xs grid grid-cols-2 p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 rounded-3xs" />
+                            <div className="bg-neutral-600/50 rounded-3xs" />
+                            <div className="bg-neutral-600/50 rounded-3xs" />
+                            <div className="bg-neutral-600/50 rounded-3xs" />
+                          </div>
+                        )}
+                        {layout.id === 'grid_9' && (
+                          <div className="w-5.5 h-5.5 bg-neutral-900/10 border border-neutral-600/30 rounded-xs grid grid-cols-3 p-0.5 gap-0.5">
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                            <div className="bg-neutral-600/50 rounded-4xs" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <span className="text-[7.5px] font-bold text-chic-dark text-center leading-none mt-1">{layout.name}</span>
+                      
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-chic-rose text-white text-[7px] font-bold shadow-xs animate-scale-up">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* TATA LETAK PILIHAN FILTER KAMERA (FILTER SELECTOR) */}
             <div className="w-full flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-chic-border/40 shadow-xs">
               <div className="flex flex-col">
@@ -628,14 +877,14 @@ export default function PhotoBooth() {
                   )}
                 </div>
 
-                {/* Tombol Mulai Ambil 3 Foto */}
+                {/* Tombol Mulai Ambil Foto */}
                 <button
                   onClick={startCaptureSession}
                   disabled={!isCameraReady || isCapturing}
                   className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-chic-rose to-chic-gold text-white font-bold text-xs shadow-md hover:scale-[1.01] active:scale-99 disabled:opacity-50 disabled:scale-100 transition-all w-full"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
-                  Mulai Pose (3x Foto)
+                  Mulai Pose ({LAYOUTS_CONFIG[selectedLayout].photoCount}x Foto)
                 </button>
 
                 {/* Status Mini */}
@@ -644,7 +893,7 @@ export default function PhotoBooth() {
                     <Zap className={`w-3.5 h-3.5 ${isCameraReady ? 'text-chic-rose' : 'text-chic-gray/50'}`} />
                     <span>{isCameraReady ? 'BOOTH_READY' : 'STREAMING...'}</span>
                   </div>
-                  <span>3_SHOTS</span>
+                  <span>{LAYOUTS_CONFIG[selectedLayout].photoCount}_SHOTS</span>
                 </div>
               </div>
             )}
@@ -659,7 +908,10 @@ export default function PhotoBooth() {
           
           {/* Sisi Kiri: Canvas Pratinjau Strip Film */}
           <div className="flex-1 min-h-0 flex justify-center items-center">
-            <div className="p-3 rounded-2xl border border-chic-border/40 bg-white shadow-lg h-full max-h-[55vh] md:max-h-[65vh] aspect-[12/27] flex items-center justify-center">
+            <div 
+              className="p-3 rounded-2xl border border-chic-border/40 bg-white shadow-lg h-full max-h-[55vh] md:max-h-[65vh] flex items-center justify-center"
+              style={{ aspectRatio: `${LAYOUTS_CONFIG[selectedLayout].canvasWidth} / ${LAYOUTS_CONFIG[selectedLayout].canvasHeight}` }}
+            >
               <canvas
                 ref={resultCanvasRef}
                 className="max-h-full max-w-full object-contain rounded-xl shadow-sm"
@@ -672,7 +924,9 @@ export default function PhotoBooth() {
             <div className="flex flex-col gap-4">
               <div>
                 <h3 className="text-base font-bold text-chic-dark">Hasil Sesi Foto</h3>
-                <p className="text-[10px] text-chic-gray mt-0.5 leading-relaxed">3 jepretan Anda berhasil digabungkan dalam satu lembar strip film premium.</p>
+                <p className="text-[10px] text-chic-gray mt-0.5 leading-relaxed">
+                  {LAYOUTS_CONFIG[selectedLayout].photoCount} jepretan Anda berhasil digabungkan dalam satu lembar cetakan premium.
+                </p>
               </div>
 
               <div className="bg-[#FFF9F9] p-3.5 rounded-xl border border-chic-border/40 text-[10px] text-chic-gray space-y-2.5 shadow-xs">
