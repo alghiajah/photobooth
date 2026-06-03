@@ -170,6 +170,38 @@ const FRAMES_CONFIG = {
     textColor: '#D97A53',
     borderColor: '#FFFBF7',
     stamp: 'Peach Sweet 🍑',
+  },
+  strawberry: {
+    id: 'strawberry',
+    name: 'Strawberry Milk',
+    desc: 'Susu stroberi manis',
+    color: '#FFE5EC',
+    textColor: '#FF5D8F',
+    borderColor: '#FFF0F3',
+    stamp: 'Strawberry Milk 🍓✨',
+  },
+  barbie: {
+    id: 'barbie',
+    name: 'Barbie Glam',
+    desc: 'Bubblegum princess',
+    color: '#FFC2D1',
+    textColor: '#FF0A54',
+    borderColor: '#FFE5EC',
+    stamp: 'Barbie World 🎀💅',
+  },
+  cotton: {
+    id: 'cotton',
+    name: 'Candy Rainbow',
+    desc: 'Gradasi pelangi impian',
+    color: '#F0E6FF',
+    gradient: [
+      { offset: 0, color: '#F0E6FF' },
+      { offset: 0.5, color: '#FFE5EC' },
+      { offset: 1, color: '#E6F5FF' }
+    ],
+    textColor: '#8C70C8',
+    borderColor: '#FFFFFF',
+    stamp: 'Cotton Candy Dream 🦄🍭',
   }
 };
 
@@ -409,8 +441,14 @@ export default function PhotoBooth({ currentUser }) {
   const drawGirlyFrame = (ctx, images, config, layout) => {
     ctx.save();
     
-    // 1. Gambar latar belakang strip warna pastel
-    ctx.fillStyle = config.color;
+    // 1. Gambar latar belakang strip warna pastel (solid atau gradasi)
+    if (config.gradient) {
+      const grad = ctx.createLinearGradient(0, 0, layout.canvasWidth, layout.canvasHeight);
+      config.gradient.forEach(stop => grad.addColorStop(stop.offset, stop.color));
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = config.color;
+    }
     ctx.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight);
     
     const coords = layout.getCoords();

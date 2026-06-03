@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PhotoBooth from './components/PhotoBooth';
 import AuthModal from './components/AuthModal';
 import { Camera as CameraIcon, Heart, LogIn, LogOut, User } from 'lucide-react';
+import { supabase } from './services/supabase';
 
 /**
  * Komponen Utama App
@@ -11,14 +12,54 @@ function App() {
   const [user, setUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  // Muat status login user dari LocalStorage saat inisialisasi
+  // Muat status login user (dari Supabase atau LocalStorage) saat inisialisasi
   useEffect(() => {
-    const savedUser = localStorage.getItem('booth_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Gagal membaca data user', e);
+    // 1. Coba dari Supabase jika terkonfigurasi
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          const profile = {
+            name: session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email,
+            email: session.user.email,
+            avatar: session.user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${session.user.email}`,
+            isSocial: true,
+            isReal: true
+          };
+          setUser(profile);
+          localStorage.setItem('booth_user', JSON.stringify(profile));
+        }
+      });
+
+      // Dengarkan perubahan status otentikasi Supabase
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          const profile = {
+            name: session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email,
+            email: session.user.email,
+            avatar: session.user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${session.user.email}`,
+            isSocial: true,
+            isReal: true
+          };
+          setUser(profile);
+          localStorage.setItem('booth_user', JSON.stringify(profile));
+        } else {
+          setUser(null);
+          localStorage.removeItem('booth_user');
+        }
+      });
+
+      return () => {
+        subscription?.unsubscribe();
+      };
+    } else {
+      // 2. Fallback ke LocalStorage untuk demo mode / email register lokal
+      const savedUser = localStorage.getItem('booth_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          console.error('Gagal membaca data user', e);
+        }
       }
     }
   }, []);
@@ -28,7 +69,10 @@ function App() {
     localStorage.setItem('booth_user', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem('booth_user');
   };

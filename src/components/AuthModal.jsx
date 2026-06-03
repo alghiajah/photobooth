@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Mail, Lock, User, AlertCircle, CheckCircle, Flame, ShieldCheck } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [tab, setTab] = useState('login'); // 'login' | 'register'
@@ -106,8 +107,26 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     }, 1000);
   };
 
-  const openSocialLogin = (provider) => {
+  const openSocialLogin = async (provider) => {
     setError('');
+    
+    // Jika Supabase terkonfigurasi, jalankan OAuth real redirect
+    if (supabase) {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'twitter' ? 'twitter' : provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) {
+        setError(`Kesalahan OAuth Supabase: ${error.message}`);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Fallback ke Simulasi Popup
     const width = 500;
     const height = 650;
     const left = window.screenX + (window.outerWidth - width) / 2;
@@ -120,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     );
     
     if (!popup) {
-      setError("Popup blocker is active. Please enable popups to login with socials.");
+      setError("Pemblokir popup aktif. Silakan izinkan popup untuk masuk lewat akun sosial.");
       return;
     }
     
@@ -283,6 +302,19 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             <span className="font-serif italic font-light text-chic-rose">Booth</span>
           </h2>
           <p className="text-[10px] text-chic-gray font-mono tracking-widest uppercase mt-1">Studio Authentication</p>
+          
+          {/* Status Koneksi Supabase */}
+          {supabase ? (
+            <div className="inline-flex items-center gap-1 mt-2.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[8px] font-mono text-emerald-600 font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+              <span>Real OAuth Active</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 mt-2.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[8px] font-mono text-amber-600 font-bold uppercase tracking-wider">
+              <Flame className="w-2.5 h-2.5 text-amber-500 animate-pulse" />
+              <span>Demo Mode (Simulated OAuth)</span>
+            </div>
+          )}
         </div>
 
         {/* Tab Selection */}
