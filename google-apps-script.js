@@ -61,24 +61,18 @@ function doPost(e) {
     };
 
     return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON)
-      .addHeader("Access-Control-Allow-Origin", "*");
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     var errorResponse = {
       status: "error",
       message: error.toString()
     };
     return ContentService.createTextOutput(JSON.stringify(errorResponse))
-      .setMimeType(ContentService.MimeType.JSON)
-      .addHeader("Access-Control-Allow-Origin", "*");
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// Menangani permintaan Preflight CORS OPTIONS dari browser
+// Menangani permintaan Preflight CORS OPTIONS jika diperlukan
 function doOptions(e) {
-  return ContentService.createTextOutput("")
-    .addHeader("Access-Control-Allow-Origin", "*")
-    .addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-    .addHeader("Access-Control-Allow-Headers", "Content-Type")
-    .addHeader("Access-Control-Max-Age", "86400");
+  return ContentService.createTextOutput("");
 }
