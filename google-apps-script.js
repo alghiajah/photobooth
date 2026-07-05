@@ -26,7 +26,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     
     // ID Folder Google Drive target
-    var folderId = "11LNpLCiz6YRgO0ep1myfzhvF7aWX6Fxv";
+    var folderId = "1zkYosf06x71QDPQ6BB9_LB4SwUxUuiQ5";
     var folder = DriveApp.getFolderById(folderId);
 
     // Bersihkan header format Base64 jika ada
