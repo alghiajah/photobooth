@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, AlertCircle, RefreshCw, Download, RotateCcw, Zap, Play } from 'lucide-react';
+import { Camera, AlertCircle, RefreshCw, Download, RotateCcw, Zap, Play, Cloud, Check, ExternalLink } from 'lucide-react';
+import { uploadPhotoToGoogleDrive } from '../services/gdriveService';
 
 /**
  * =========================================================================
@@ -255,6 +256,21 @@ export default function PhotoBooth({ currentUser }) {
   // Helfer fungsi jeda (sleep) menggunakan Promise
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // State Integrasi Google Drive
+  const [gdriveStatus, setGdriveStatus] = useState('idle'); // 'idle' | 'uploading' | 'success' | 'error'
+  const [gdriveUrl, setGdriveUrl] = useState('');
+  const [gdriveError, setGdriveError] = useState('');
+  const uploadTimeoutRef = useRef(null);
+
+  // Bersihkan timer saat unmount
+  useEffect(() => {
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // 1. Mengambil Perangkat Kamera yang Tersedia
   const getCameras = async () => {
     try {
@@ -430,6 +446,15 @@ export default function PhotoBooth({ currentUser }) {
         loadedCount++;
         if (loadedCount === layout.photoCount) {
           drawGirlyFrame(ctx, imgElements, FRAMES_CONFIG[selectedFrame], layout);
+
+          // Jadwalkan upload otomatis ke Google Drive (Debounce 2.5 detik)
+          if (uploadTimeoutRef.current) {
+            clearTimeout(uploadTimeoutRef.current);
+          }
+          setGdriveStatus('idle'); // Kembalikan ke idle saat render ulang
+          uploadTimeoutRef.current = setTimeout(() => {
+            triggerGoogleDriveUpload();
+          }, 2500);
         }
       };
       img.src = src;
@@ -597,6 +622,33 @@ export default function PhotoBooth({ currentUser }) {
     }
   }, [step, photos, selectedFrame, selectedLayout]);
 
+  // Fungsi Pemicu Upload Google Drive
+  const triggerGoogleDriveUpload = async () => {
+    const canvas = resultCanvasRef.current;
+    if (!canvas) return;
+
+    if (uploadTimeoutRef.current) {
+      clearTimeout(uploadTimeoutRef.current);
+    }
+
+    setGdriveStatus('uploading');
+    setGdriveError('');
+
+    try {
+      const base64Data = canvas.toDataURL('image/png');
+      const name = currentUser?.name || 'guest';
+      const result = await uploadPhotoToGoogleDrive(base64Data, name);
+      if (result.success) {
+        setGdriveStatus('success');
+        setGdriveUrl(result.fileUrl);
+      }
+    } catch (err) {
+      console.error("Gagal mengunggah otomatis ke Google Drive:", err);
+      setGdriveStatus('error');
+      setGdriveError(err.message || 'Koneksi API bermasalah');
+    }
+  };
+
   // 6. Navigasi Aksi: Unduh & Ambil Ulang
   const handleDownload = () => {
     const canvas = resultCanvasRef.current;
@@ -605,11 +657,22 @@ export default function PhotoBooth({ currentUser }) {
     link.download = 'photobooth-session.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+
+    // Jika upload belum selesai/gagal, picu upload secara langsung saat diklik unduh
+    if (gdriveStatus !== 'success' && gdriveStatus !== 'uploading') {
+      triggerGoogleDriveUpload();
+    }
   };
 
   const handleRetake = () => {
+    if (uploadTimeoutRef.current) {
+      clearTimeout(uploadTimeoutRef.current);
+    }
     setPhotos([]);
     setStep('camera');
+    setGdriveStatus('idle');
+    setGdriveUrl('');
+    setGdriveError('');
   };
 
   return (
@@ -974,6 +1037,79 @@ export default function PhotoBooth({ currentUser }) {
                 </div>
                 <hr className="border-chic-border/40" />
                 <p className="leading-relaxed">Bingkai studio dimuat dari berkas digital Anda. format resolusi tinggi PNG.</p>
+              </div>
+
+              {/* Panel Status Upload Google Drive */}
+              <div className="bg-white/60 p-3.5 rounded-xl border border-chic-border/40 text-[10px] space-y-2 shadow-xs">
+                <div className="flex items-center justify-between font-bold text-chic-dark">
+                  <span className="flex items-center gap-1">
+                    <Cloud className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Penyimpanan Cloud</span>
+                  </span>
+                  
+                  {gdriveStatus === 'idle' && (
+                    <span className="text-gray-400 font-mono text-[9px] uppercase">Menunggu...</span>
+                  )}
+                  {gdriveStatus === 'uploading' && (
+                    <span className="text-blue-500 font-mono text-[9px] uppercase animate-pulse flex items-center gap-1">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                      Proses...
+                    </span>
+                  )}
+                  {gdriveStatus === 'success' && (
+                    <span className="text-emerald-500 font-mono text-[9px] uppercase flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      Tersimpan
+                    </span>
+                  )}
+                  {gdriveStatus === 'error' && (
+                    <span className="text-rose-500 font-mono text-[9px] uppercase">Gagal</span>
+                  )}
+                </div>
+                
+                <hr className="border-chic-border/40" />
+
+                {gdriveStatus === 'idle' && (
+                  <p className="text-chic-gray leading-relaxed text-[9px]">
+                    Foto Anda akan diunggah otomatis ke Google Drive setelah pratinjau stabil...
+                  </p>
+                )}
+                {gdriveStatus === 'uploading' && (
+                  <p className="text-chic-gray leading-relaxed text-[9px]">
+                    Sedang menyimpan cetakan foto Anda ke folder Google Drive di latar belakang...
+                  </p>
+                )}
+                {gdriveStatus === 'success' && (
+                  <div className="space-y-1.5">
+                    <p className="text-chic-gray leading-relaxed text-[9px]">
+                      Foto berhasil dicadangkan secara otomatis ke Google Drive!
+                    </p>
+                    {gdriveUrl && (
+                      <a
+                        href={gdriveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-chic-rose hover:underline font-bold text-[9.5px]"
+                      >
+                        Lihat di Google Drive
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+                {gdriveStatus === 'error' && (
+                  <div className="space-y-1">
+                    <p className="text-rose-500 leading-normal text-[9px]">
+                      Error: {gdriveError || 'Koneksi API bermasalah.'}
+                    </p>
+                    <button
+                      onClick={triggerGoogleDriveUpload}
+                      className="text-[9px] font-bold text-chic-rose hover:underline block text-left"
+                    >
+                      Coba Unggah Manual
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
