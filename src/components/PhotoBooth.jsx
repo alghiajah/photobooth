@@ -631,7 +631,7 @@ export default function PhotoBooth({ currentUser }) {
       clearTimeout(uploadTimeoutRef.current);
     }
 
-    const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+    const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbzPxvlI93bgmD_myp8KpocyMr4OX5wE6jsBRVbYLoW__rLik9AfukTQ2o0aU1SPF-CVDw/exec";
     if (!scriptUrl) {
       setGdriveStatus('error');
       setGdriveError('Konfigurasi .env belum diisi (VITE_GOOGLE_SCRIPT_URL kosong).');
