@@ -229,6 +229,42 @@ const FILTERS = [
  * =========================================================================
  */
 
+/**
+ * =========================================================================
+ * KONFIGURASI OVERLAY COMPANION (FOTO BARENG INTAN JKT48)
+ * =========================================================================
+ */
+const INTAN_POSES = [
+  {
+    id: 'none',
+    name: 'Solo Mode',
+    desc: 'Foto Sendiri',
+    icon: '👤',
+    src: null
+  },
+  {
+    id: 'intan_1',
+    name: 'Pose 1',
+    desc: 'Senyum Ceria 🌸',
+    icon: '✨',
+    src: import.meta.env.BASE_URL + 'assets/intan-1.png'
+  },
+  {
+    id: 'intan_2',
+    name: 'Pose 2',
+    desc: 'Gemas Dagu 💖',
+    icon: '🎀',
+    src: import.meta.env.BASE_URL + 'assets/intan-2.png'
+  },
+  {
+    id: 'intan_3',
+    name: 'Pose 3',
+    desc: 'Imut Pose 🍭',
+    icon: '⭐',
+    src: import.meta.env.BASE_URL + 'assets/intan-3.png'
+  }
+];
+
 export default function PhotoBooth({ currentUser }) {
   const videoRef = useRef(null);
   const tempCanvasRef = useRef(null);
@@ -240,6 +276,21 @@ export default function PhotoBooth({ currentUser }) {
   const [selectedFrame, setSelectedFrame] = useState('sakura'); // 'sakura' | 'lavender' | 'sky' | 'peach'
   const [selectedLayout, setSelectedLayout] = useState('strip_3'); // strip_3 | strip_2 | strip_4 | wide_2 | grid_4 | grid_9
   const [selectedFilter, setSelectedFilter] = useState('normal'); // normal | mono | vintage | sweet | chrome
+  const [selectedIntanPose, setSelectedIntanPose] = useState('intan_1'); // 'none' | 'intan_1' | 'intan_2' | 'intan_3'
+  const [intanPosition, setIntanPosition] = useState('right'); // 'right' | 'left'
+  const intanImagesRef = useRef({});
+
+  // Preload gambar Intan
+  useEffect(() => {
+    INTAN_POSES.forEach(pose => {
+      if (pose.src) {
+        const img = new Image();
+        img.src = pose.src;
+        intanImagesRef.current[pose.id] = img;
+      }
+    });
+  }, []);
+
   const [hasPermission, setHasPermission] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [devices, setDevices] = useState([]);
@@ -380,6 +431,29 @@ export default function PhotoBooth({ currentUser }) {
     ctx.scale(-1, 1);
     ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Tempelkan Overlay Cutout Intan jika aktif (dengan filter terpilih)
+    if (selectedIntanPose !== 'none') {
+      const intanImg = intanImagesRef.current[selectedIntanPose];
+      if (intanImg && intanImg.complete && intanImg.naturalWidth !== 0) {
+        const iHeight = sHeight * 0.85;
+        const iWidth = (intanImg.width / intanImg.height) * iHeight;
+        const ix = intanPosition === 'right' ? (sWidth - iWidth + (sWidth * 0.03)) : (-sWidth * 0.03);
+        const iy = sHeight - iHeight;
+
+        ctx.save();
+        if (intanPosition === 'left') {
+          ctx.translate(ix + iWidth, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(intanImg, 0, iy, iWidth, iHeight);
+        } else {
+          ctx.drawImage(intanImg, ix, iy, iWidth, iHeight);
+        }
+        ctx.restore();
+      }
+    }
+
+    ctx.filter = 'none';
 
     return canvas.toDataURL('image/jpeg', 0.95);
   };
@@ -723,13 +797,28 @@ export default function PhotoBooth({ currentUser }) {
 
               {/* Video Stream */}
               {hasPermission === true && (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
-                />
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
+                  />
+
+                  {/* Overlay Intan JKT48 Live */}
+                  {selectedIntanPose !== 'none' && (
+                    <div 
+                      className={`absolute bottom-0 ${intanPosition === 'right' ? 'right-0' : 'left-0'} z-15 pointer-events-none h-[85%] max-h-[85%] transition-all duration-300 transform ${intanPosition === 'left' ? '-scale-x-100' : ''} ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
+                    >
+                      <img 
+                        src={INTAN_POSES.find(p => p.id === selectedIntanPose)?.src} 
+                        alt="Foto Bareng Intan"
+                        className="h-full w-auto object-contain drop-shadow-2xl animate-fade-in"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Countdown Overlay */}
@@ -801,6 +890,68 @@ export default function PhotoBooth({ currentUser }) {
 
           {/* SISI KANAN: PANEL OPSI & KONTROL (SIDEBAR) */}
           <div className="w-full md:w-[320px] flex flex-col justify-center gap-3 min-h-0 overflow-y-auto no-scrollbar">
+            
+            {/* TATA LETAK PILIHAN POSE INTAN JKT48 (COMPANION SELECTOR) */}
+            <div className="w-full flex flex-col gap-2 bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-purple-500/10 backdrop-blur-md p-3.5 rounded-2xl border border-chic-rose/30 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-xs font-bold text-chic-dark tracking-wide uppercase">Foto Bareng Intan</h3>
+                    <span className="px-1.5 py-0.5 bg-gradient-to-r from-chic-rose to-chic-gold text-white text-[8px] font-extrabold rounded-full animate-pulse">FEATURED</span>
+                  </div>
+                  <p className="text-[9px] text-chic-gray">Pilih pose companion Intan JKT48</p>
+                </div>
+                
+                {/* Toggle Posisi Kiri / Kanan */}
+                {selectedIntanPose !== 'none' && (
+                  <div className="flex items-center bg-white/80 p-0.5 rounded-lg border border-chic-border text-[9px] font-bold">
+                    <button
+                      onClick={() => setIntanPosition('left')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all ${intanPosition === 'left' ? 'bg-chic-rose text-white shadow-2xs' : 'text-chic-gray'}`}
+                    >
+                      Kiri
+                    </button>
+                    <button
+                      onClick={() => setIntanPosition('right')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all ${intanPosition === 'right' ? 'bg-chic-rose text-white shadow-2xs' : 'text-chic-gray'}`}
+                    >
+                      Kanan
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5 mt-1">
+                {INTAN_POSES.map((pose) => {
+                  const isSelected = selectedIntanPose === pose.id;
+                  return (
+                    <button
+                      key={pose.id}
+                      onClick={() => setSelectedIntanPose(pose.id)}
+                      className={`relative flex flex-col items-center p-1.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
+                        isSelected
+                          ? 'border-chic-rose bg-white shadow-sm ring-1 ring-chic-rose/20'
+                          : 'border-chic-border/30 bg-white/40 hover:bg-white/80'
+                      }`}
+                    >
+                      <div className="w-full h-10 rounded-lg overflow-hidden bg-rose-50 border border-rose-100 flex items-center justify-center relative">
+                        {pose.src ? (
+                          <img src={pose.src} alt={pose.name} className="h-full object-contain drop-shadow-xs" />
+                        ) : (
+                          <span className="text-lg">👤</span>
+                        )}
+                      </div>
+                      <span className="text-[8px] font-bold text-chic-dark mt-1 truncate max-w-full text-center">{pose.name}</span>
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-chic-rose text-white text-[7px] font-bold shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             
             {/* TATA LETAK PILIHAN BINGKAI (FRAME SELECTOR) */}
             <div className="w-full flex flex-col gap-2 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-chic-border/40 shadow-xs">
