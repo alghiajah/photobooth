@@ -78,7 +78,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-chic-gradient bg-grid-chic text-chic-dark flex flex-col justify-between relative px-4 py-3 md:px-6">
+    <div className="min-h-screen bg-chic-gradient bg-grid-chic text-chic-dark flex flex-col justify-between relative px-4 py-3 md:px-6">
       
       {/* HEADER UTAMA */}
       <header className="w-full max-w-5xl mx-auto flex items-center justify-between py-2 border-b border-chic-border/30 mb-2">
@@ -137,7 +137,7 @@ function App() {
       </header>
 
       {/* TATA LETAK UTAMA */}
-      <main className="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden py-2">
+      <main className="flex-1 flex items-start justify-center w-full py-2">
         <PhotoBooth currentUser={user} />
       </main>
 
