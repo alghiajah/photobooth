@@ -275,10 +275,102 @@ export default function PhotoBooth({ currentUser }) {
   const [step, setStep] = useState('camera'); // 'camera' | 'preview'
   const [selectedFrame, setSelectedFrame] = useState('sakura'); // 'sakura' | 'lavender' | 'sky' | 'peach'
   const [selectedLayout, setSelectedLayout] = useState('strip_3'); // strip_3 | strip_2 | strip_4 | wide_2 | grid_4 | grid_9
-  const [selectedFilter, setSelectedFilter] = useState('normal'); // normal | mono | vintage | sweet | chrome
-  const [selectedIntanPose, setSelectedIntanPose] = useState('none'); // Default: 'none' (Solo mode, tidak otomatis muncul)
-  const [intanPosition, setIntanPosition] = useState('right'); // 'right' | 'left'
+  // State & Ref untuk Overlay Intan Draggable & Resizable
+  const [intanScale, setIntanScale] = useState(1.0); // 0.4 - 2.0
+  const [intanPosPercent, setIntanPosPercent] = useState({ x: 55, y: 15 }); // % dari left & top container kamera
+  const [isDraggingIntan, setIsDraggingIntan] = useState(false);
+
+  const cameraContainerRef = useRef(null);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 55, posY: 15 });
   const intanImagesRef = useRef({});
+
+  // Reset Posisi & Ukuran Intan
+  const resetIntanTransform = () => {
+    setIntanScale(1.0);
+    if (intanPosition === 'right') {
+      setIntanPosPercent({ x: 55, y: 15 });
+    } else {
+      setIntanPosPercent({ x: 5, y: 15 });
+    }
+  };
+
+  const handlePositionToggle = (pos) => {
+    setIntanPosition(pos);
+    if (pos === 'right') {
+      setIntanPosPercent({ x: 55, y: 15 });
+    } else {
+      setIntanPosPercent({ x: 5, y: 15 });
+    }
+  };
+
+  // Handler Drag Intan (Mouse & Touch)
+  const handleIntanDragStart = (e) => {
+    e.preventDefault();
+    setIsDraggingIntan(true);
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    dragStartRef.current = {
+      mouseX: clientX,
+      mouseY: clientY,
+      posX: intanPosPercent.x,
+      posY: intanPosPercent.y
+    };
+  };
+
+  useEffect(() => {
+    const handleDragMove = (e) => {
+      if (!isDraggingIntan || !cameraContainerRef.current) return;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      const rect = cameraContainerRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const deltaX = clientX - dragStartRef.current.mouseX;
+      const deltaY = clientY - dragStartRef.current.mouseY;
+
+      const deltaXPercent = (deltaX / rect.width) * 100;
+      const deltaYPercent = (deltaY / rect.height) * 100;
+
+      let newX = dragStartRef.current.posX + deltaXPercent;
+      let newY = dragStartRef.current.posY + deltaYPercent;
+
+      newX = Math.max(-25, Math.min(85, newX));
+      newY = Math.max(-20, Math.min(85, newY));
+
+      setIntanPosPercent({ x: newX, y: newY });
+    };
+
+    const handleDragEnd = () => {
+      if (isDraggingIntan) {
+        setIsDraggingIntan(false);
+      }
+    };
+
+    if (isDraggingIntan) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleDragMove, { passive: false });
+      window.addEventListener('touchend', handleDragEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleDragMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [isDraggingIntan]);
+
+  // Handler Scroll Zoom / Resizing
+  const handleIntanWheel = (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 0.05 : -0.05;
+    setIntanScale(prev => Math.max(0.4, Math.min(2.0, parseFloat((prev + zoomFactor).toFixed(2)))));
+  };
 
   // Preload & Auto Chroma-Key Removal untuk Foto Intan (100% Transparan)
   useEffect(() => {
@@ -467,20 +559,22 @@ export default function PhotoBooth({ currentUser }) {
     ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Tempelkan Overlay Cutout Intan jika aktif (dengan filter terpilih)
+    // Tempelkan Overlay Cutout Intan jika aktif (dengan filter & posisi/skala terpilih)
     if (selectedIntanPose !== 'none') {
       const intanImg = intanImagesRef.current[selectedIntanPose];
       if (intanImg && intanImg.complete && intanImg.naturalWidth !== 0) {
-        const iHeight = sHeight * 0.85;
+        const iHeight = sHeight * 0.85 * intanScale;
         const iWidth = (intanImg.width / intanImg.height) * iHeight;
-        const ix = intanPosition === 'right' ? (sWidth - iWidth + (sWidth * 0.03)) : (-sWidth * 0.03);
-        const iy = sHeight - iHeight;
+
+        // Konversi intanPosPercent dari live preview ke titik koordinat kanvas
+        const ix = (intanPosPercent.x / 100) * sWidth;
+        const iy = (intanPosPercent.y / 100) * sHeight;
 
         ctx.save();
         if (intanPosition === 'left') {
-          ctx.translate(ix + iWidth, 0);
+          ctx.translate(ix + iWidth, iy);
           ctx.scale(-1, 1);
-          ctx.drawImage(intanImg, 0, iy, iWidth, iHeight);
+          ctx.drawImage(intanImg, 0, 0, iWidth, iHeight);
         } else {
           ctx.drawImage(intanImg, ix, iy, iWidth, iHeight);
         }
@@ -800,7 +894,7 @@ export default function PhotoBooth({ currentUser }) {
           
           {/* SISI KIRI: PRATINJAU KAMERA DENGAN OVERLAY TERINTEGRASI */}
           <div className="flex-1 flex flex-col items-center relative w-full">
-            <div className="relative max-h-full max-w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border-4 border-white shadow-xl shadow-pink-200/20 ring-1 ring-chic-rose/10 flex items-center justify-center">
+            <div ref={cameraContainerRef} className="relative max-h-full max-w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border-4 border-white shadow-xl shadow-pink-200/20 ring-1 ring-chic-rose/10 flex items-center justify-center">
               
               {/* Flash Overlay Effect */}
               {isFlashActive && (
@@ -832,7 +926,7 @@ export default function PhotoBooth({ currentUser }) {
 
               {/* Video Stream */}
               {hasPermission === true && (
-                <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                   <video
                     ref={videoRef}
                     autoPlay
@@ -841,16 +935,35 @@ export default function PhotoBooth({ currentUser }) {
                     className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
                   />
 
-                  {/* Overlay Intan JKT48 Live (Menggunakan Transparan Clean Image) */}
+                  {/* Overlay Intan JKT48 Live (Bisa di-drag & diatur ukurannya) */}
                   {selectedIntanPose !== 'none' && (
                     <div 
-                      className={`absolute bottom-0 ${intanPosition === 'right' ? 'right-0' : 'left-0'} z-15 pointer-events-none h-[85%] max-h-[85%] transition-all duration-300 transform ${intanPosition === 'left' ? '-scale-x-100' : ''} ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
+                      onMouseDown={handleIntanDragStart}
+                      onTouchStart={handleIntanDragStart}
+                      onWheel={handleIntanWheel}
+                      style={{
+                        left: `${intanPosPercent.x}%`,
+                        top: `${intanPosPercent.y}%`,
+                        height: `${85 * intanScale}%`,
+                      }}
+                      className={`absolute z-25 cursor-grab active:cursor-grabbing select-none group touch-none transition-shadow ${
+                        isDraggingIntan ? 'cursor-grabbing border-2 border-dashed border-chic-rose bg-chic-rose/10 rounded-2xl shadow-xl' : 'hover:border-2 hover:border-dashed hover:border-chic-rose/70 hover:rounded-2xl'
+                      } ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
+                      title="Klik & Geser untuk memindahkan. Scroll mouse untuk atur ukuran!"
                     >
                       <img 
                         src={intanImagesRef.current[selectedIntanPose]?.src || INTAN_POSES.find(p => p.id === selectedIntanPose)?.src} 
                         alt="Foto Bareng Intan"
-                        className="h-full w-auto object-contain drop-shadow-2xl animate-fade-in"
+                        draggable={false}
+                        className={`h-full w-auto object-contain drop-shadow-2xl animate-fade-in pointer-events-none transform transition-transform ${
+                          intanPosition === 'left' ? '-scale-x-100' : ''
+                        }`}
                       />
+
+                      {/* Tooltip Petunjuk Drag & Scale */}
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur-xs text-white text-[8px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md pointer-events-none whitespace-nowrap z-30">
+                        <span>✋ Geser / Scroll Ukuran ({Math.round(intanScale * 100)}%)</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -942,14 +1055,14 @@ export default function PhotoBooth({ currentUser }) {
                   <div className="flex items-center bg-white/90 p-0.5 rounded-lg border border-chic-border text-[9px] font-bold shadow-2xs">
                     <button
                       type="button"
-                      onClick={() => setIntanPosition('left')}
+                      onClick={() => handlePositionToggle('left')}
                       className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${intanPosition === 'left' ? 'bg-chic-rose text-white shadow-2xs' : 'text-chic-gray hover:text-chic-dark'}`}
                     >
                       Kiri
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIntanPosition('right')}
+                      onClick={() => handlePositionToggle('right')}
                       className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${intanPosition === 'right' ? 'bg-chic-rose text-white shadow-2xs' : 'text-chic-gray hover:text-chic-dark'}`}
                     >
                       Kanan
@@ -966,7 +1079,12 @@ export default function PhotoBooth({ currentUser }) {
                     <button
                       key={pose.id}
                       type="button"
-                      onClick={() => setSelectedIntanPose(pose.id)}
+                      onClick={() => {
+                        setSelectedIntanPose(pose.id);
+                        if (selectedIntanPose === 'none') {
+                          resetIntanTransform();
+                        }
+                      }}
                       className={`relative flex flex-col items-center justify-between p-1.5 rounded-xl border transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
                         isSelected
                           ? 'border-chic-rose bg-white shadow-md ring-2 ring-chic-rose/30'
@@ -990,6 +1108,53 @@ export default function PhotoBooth({ currentUser }) {
                   );
                 })}
               </div>
+
+              {/* Kontrol Pengatur Ukuran Slider & Drag Hint */}
+              {selectedIntanPose !== 'none' && (
+                <div className="flex flex-col gap-1.5 mt-2 bg-white/80 backdrop-blur-xs p-2.5 rounded-xl border border-chic-border/50 shadow-2xs">
+                  <div className="flex items-center justify-between text-[9px] font-bold text-chic-dark">
+                    <span>Ukuran Intan:</span>
+                    <span className="text-chic-rose font-mono font-extrabold">{Math.round(intanScale * 100)}%</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIntanScale(prev => Math.max(0.4, parseFloat((prev - 0.1).toFixed(2))))}
+                      className="w-6 h-6 rounded-lg bg-chic-blush-soft text-chic-dark font-bold text-xs flex items-center justify-center hover:bg-chic-rose hover:text-white transition-colors cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="range"
+                      min="0.4"
+                      max="2.0"
+                      step="0.05"
+                      value={intanScale}
+                      onChange={(e) => setIntanScale(parseFloat(e.target.value))}
+                      className="flex-1 accent-chic-rose h-1.5 bg-chic-border/50 rounded-lg cursor-pointer"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIntanScale(prev => Math.min(2.0, parseFloat((prev + 0.1).toFixed(2))))}
+                      className="w-6 h-6 rounded-lg bg-chic-blush-soft text-chic-dark font-bold text-xs flex items-center justify-center hover:bg-chic-rose hover:text-white transition-colors cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-chic-border/30">
+                    <span className="text-[8px] text-chic-gray">💡 Drag di kamera / Scroll mouse</span>
+                    <button
+                      type="button"
+                      onClick={resetIntanTransform}
+                      className="text-[8px] font-bold text-chic-rose hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      🔄 Reset Posisi
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* TATA LETAK PILIHAN BINGKAI (FRAME SELECTOR) */}
