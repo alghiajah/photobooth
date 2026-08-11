@@ -276,7 +276,7 @@ export default function PhotoBooth({ currentUser }) {
   const [selectedFrame, setSelectedFrame] = useState('sakura'); // 'sakura' | 'lavender' | 'sky' | 'peach'
   const [selectedLayout, setSelectedLayout] = useState('strip_3'); // strip_3 | strip_2 | strip_4 | wide_2 | grid_4 | grid_9
   const [selectedFilter, setSelectedFilter] = useState('normal'); // normal | mono | vintage | sweet | chrome
-  const [selectedIntanPose, setSelectedIntanPose] = useState('intan_1'); // 'none' | 'intan_1' | 'intan_2' | 'intan_3'
+  const [selectedIntanPose, setSelectedIntanPose] = useState('none'); // Default: 'none' (Solo mode, tidak otomatis muncul)
   const [intanPosition, setIntanPosition] = useState('right'); // 'right' | 'left'
   const intanImagesRef = useRef({});
 
@@ -301,12 +301,15 @@ export default function PhotoBooth({ currentUser }) {
             const g = data[i + 1];
             const b = data[i + 2];
 
-            // Hapus piksel hijau chroma key screen (#00FF00) -> Ubah ke 100% Transparan
-            if (g > 75 && g > r * 1.15 && g > b * 1.15) {
-              data[i + 3] = 0; // Alpha 0 = Transparan total
-            } else if (g > 60 && g > r * 1.05 && g > b * 1.05) {
-              const diff = g - Math.max(r, b);
-              data[i + 3] = Math.max(0, 255 - diff * 4);
+            const maxRB = Math.max(r, b);
+            if (g > 65 && g > maxRB * 1.1) {
+              const greenExcess = g - maxRB;
+              if (greenExcess > 25) {
+                data[i + 3] = 0; // Transparan total 100%
+              } else {
+                data[i + 3] = Math.max(0, 255 - greenExcess * 10);
+                data[i + 1] = maxRB; // Despill hijau di pinggiran
+              }
             }
           }
 
@@ -838,13 +841,13 @@ export default function PhotoBooth({ currentUser }) {
                     className={`w-full h-full object-cover transform -scale-x-100 transition-all duration-300 ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
                   />
 
-                  {/* Overlay Intan JKT48 Live */}
+                  {/* Overlay Intan JKT48 Live (Menggunakan Transparan Clean Image) */}
                   {selectedIntanPose !== 'none' && (
                     <div 
                       className={`absolute bottom-0 ${intanPosition === 'right' ? 'right-0' : 'left-0'} z-15 pointer-events-none h-[85%] max-h-[85%] transition-all duration-300 transform ${intanPosition === 'left' ? '-scale-x-100' : ''} ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
                     >
                       <img 
-                        src={INTAN_POSES.find(p => p.id === selectedIntanPose)?.src} 
+                        src={intanImagesRef.current[selectedIntanPose]?.src || INTAN_POSES.find(p => p.id === selectedIntanPose)?.src} 
                         alt="Foto Bareng Intan"
                         className="h-full w-auto object-contain drop-shadow-2xl animate-fade-in"
                       />
@@ -921,22 +924,22 @@ export default function PhotoBooth({ currentUser }) {
           <canvas ref={tempCanvasRef} className="hidden" />
 
           {/* SISI KANAN: PANEL OPSI & KONTROL (SIDEBAR) */}
-          <div className="w-full md:w-[320px] flex flex-col justify-center gap-3 min-h-0 overflow-y-auto no-scrollbar">
+          <div className="w-full md:w-[320px] flex flex-col justify-start gap-3 min-h-0 overflow-y-auto pr-1">
             
             {/* TATA LETAK PILIHAN POSE INTAN JKT48 (COMPANION SELECTOR) */}
-            <div className="w-full flex flex-col gap-2 bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-purple-500/10 backdrop-blur-md p-3.5 rounded-2xl border border-chic-rose/30 shadow-xs relative overflow-hidden">
+            <div className="w-full flex flex-col gap-2 bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-purple-500/10 backdrop-blur-md p-3.5 rounded-2xl border border-chic-rose/40 shadow-sm relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <h3 className="text-xs font-bold text-chic-dark tracking-wide uppercase">Foto Bareng Intan</h3>
-                    <span className="px-1.5 py-0.5 bg-gradient-to-r from-chic-rose to-chic-gold text-white text-[8px] font-extrabold rounded-full animate-pulse">FEATURED</span>
+                    <span className="px-1.5 py-0.5 bg-gradient-to-r from-chic-rose to-chic-gold text-white text-[8px] font-extrabold rounded-full animate-pulse">SPECIAL</span>
                   </div>
                   <p className="text-[9px] text-chic-gray">Pilih pose companion Intan JKT48</p>
                 </div>
                 
                 {/* Toggle Posisi Kiri / Kanan */}
                 {selectedIntanPose !== 'none' && (
-                  <div className="flex items-center bg-white/80 p-0.5 rounded-lg border border-chic-border text-[9px] font-bold">
+                  <div className="flex items-center bg-white/90 p-0.5 rounded-lg border border-chic-border text-[9px] font-bold shadow-2xs">
                     <button
                       onClick={() => setIntanPosition('left')}
                       className={`px-1.5 py-0.5 rounded-md transition-all ${intanPosition === 'left' ? 'bg-chic-rose text-white shadow-2xs' : 'text-chic-gray'}`}
@@ -956,19 +959,20 @@ export default function PhotoBooth({ currentUser }) {
               <div className="grid grid-cols-4 gap-1.5 mt-1">
                 {INTAN_POSES.map((pose) => {
                   const isSelected = selectedIntanPose === pose.id;
+                  const displaySrc = intanImagesRef.current[pose.id]?.src || pose.src;
                   return (
                     <button
                       key={pose.id}
                       onClick={() => setSelectedIntanPose(pose.id)}
                       className={`relative flex flex-col items-center p-1.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 ${
                         isSelected
-                          ? 'border-chic-rose bg-white shadow-sm ring-1 ring-chic-rose/20'
-                          : 'border-chic-border/30 bg-white/40 hover:bg-white/80'
+                          ? 'border-chic-rose bg-white shadow-md ring-1 ring-chic-rose/30'
+                          : 'border-chic-border/40 bg-white/50 hover:bg-white'
                       }`}
                     >
-                      <div className="w-full h-10 rounded-lg overflow-hidden bg-rose-50 border border-rose-100 flex items-center justify-center relative">
-                        {pose.src ? (
-                          <img src={pose.src} alt={pose.name} className="h-full object-contain drop-shadow-xs" />
+                      <div className="w-full h-10 rounded-lg overflow-hidden bg-rose-50/50 border border-rose-100 flex items-center justify-center relative">
+                        {displaySrc ? (
+                          <img src={displaySrc} alt={pose.name} className="h-full object-contain drop-shadow-xs" />
                         ) : (
                           <span className="text-lg">👤</span>
                         )}
