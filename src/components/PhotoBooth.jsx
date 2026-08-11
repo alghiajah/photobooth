@@ -280,13 +280,45 @@ export default function PhotoBooth({ currentUser }) {
   const [intanPosition, setIntanPosition] = useState('right'); // 'right' | 'left'
   const intanImagesRef = useRef({});
 
-  // Preload gambar Intan
+  // Preload & Auto Chroma-Key Removal untuk Foto Intan (100% Transparan)
   useEffect(() => {
     INTAN_POSES.forEach(pose => {
       if (pose.src) {
-        const img = new Image();
-        img.src = pose.src;
-        intanImagesRef.current[pose.id] = img;
+        const rawImg = new Image();
+        rawImg.crossOrigin = 'anonymous';
+        rawImg.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = rawImg.naturalWidth || rawImg.width;
+          canvas.height = rawImg.naturalHeight || rawImg.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(rawImg, 0, 0);
+
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            // Hapus piksel hijau chroma key screen (#00FF00) -> Ubah ke 100% Transparan
+            if (g > 75 && g > r * 1.15 && g > b * 1.15) {
+              data[i + 3] = 0; // Alpha 0 = Transparan total
+            } else if (g > 60 && g > r * 1.05 && g > b * 1.05) {
+              const diff = g - Math.max(r, b);
+              data[i + 3] = Math.max(0, 255 - diff * 4);
+            }
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          const cleanImg = new Image();
+          cleanImg.src = canvas.toDataURL('image/png');
+          cleanImg.onload = () => {
+            intanImagesRef.current[pose.id] = cleanImg;
+          };
+        };
+        rawImg.src = pose.src;
       }
     });
   }, []);
