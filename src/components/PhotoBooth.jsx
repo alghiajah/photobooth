@@ -275,6 +275,10 @@ export default function PhotoBooth({ currentUser }) {
   const [step, setStep] = useState('camera'); // 'camera' | 'preview'
   const [selectedFrame, setSelectedFrame] = useState('sakura'); // 'sakura' | 'lavender' | 'sky' | 'peach'
   const [selectedLayout, setSelectedLayout] = useState('strip_3'); // strip_3 | strip_2 | strip_4 | wide_2 | grid_4 | grid_9
+  const [selectedFilter, setSelectedFilter] = useState('normal'); // normal | mono | vintage | sweet | chrome
+  const [selectedIntanPose, setSelectedIntanPose] = useState('none'); // Default: 'none' (Solo mode, tidak otomatis muncul)
+  const [intanPosition, setIntanPosition] = useState('right'); // 'right' | 'left'
+
   // State & Ref untuk Overlay Intan Draggable & Resizable
   const [intanScale, setIntanScale] = useState(1.0); // 0.4 - 2.0
   const [intanPosPercent, setIntanPosPercent] = useState({ x: 55, y: 15 }); // % dari left & top container kamera
