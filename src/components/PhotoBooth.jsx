@@ -950,7 +950,7 @@ export default function PhotoBooth({ currentUser }) {
                         top: `${intanPosPercent.y}%`,
                         height: `${85 * intanScale}%`,
                       }}
-                      className={`absolute z-25 cursor-grab active:cursor-grabbing select-none group touch-none transition-shadow ${
+                      className={`absolute z-25 w-max max-w-none flex-shrink-0 cursor-grab active:cursor-grabbing select-none group touch-none transition-shadow ${
                         isDraggingIntan ? 'cursor-grabbing border-2 border-dashed border-chic-rose bg-chic-rose/10 rounded-2xl shadow-xl' : 'hover:border-2 hover:border-dashed hover:border-chic-rose/70 hover:rounded-2xl'
                       } ${FILTERS.find(f => f.id === selectedFilter)?.filterStyle || ''}`}
                       title="Klik & Geser untuk memindahkan. Scroll mouse untuk atur ukuran!"
@@ -959,7 +959,7 @@ export default function PhotoBooth({ currentUser }) {
                         src={intanImagesRef.current[selectedIntanPose]?.src || INTAN_POSES.find(p => p.id === selectedIntanPose)?.src} 
                         alt="Foto Bareng Intan"
                         draggable={false}
-                        className={`h-full w-auto object-contain drop-shadow-2xl animate-fade-in pointer-events-none transform transition-transform ${
+                        className={`h-full w-auto max-w-none max-h-none flex-shrink-0 object-contain drop-shadow-2xl animate-fade-in pointer-events-none transform transition-transform ${
                           intanPosition === 'left' ? '-scale-x-100' : ''
                         }`}
                       />
