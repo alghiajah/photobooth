@@ -229,7 +229,7 @@ const FILTERS = [
  * =========================================================================
  */
 
-export default function PhotoBooth({ currentUser }) {
+export default function PhotoBooth() {
   const videoRef = useRef(null);
   const tempCanvasRef = useRef(null);
   const resultCanvasRef = useRef(null);
@@ -601,8 +601,7 @@ export default function PhotoBooth({ currentUser }) {
     
     // Teks handwritten menggunakan font Pacifico atau serif
     ctx.font = "italic 48px 'Cormorant Garamond', serif";
-    const userStamp = currentUser ? `${config.stamp} • ${currentUser.name} ✦` : config.stamp;
-    ctx.fillText(userStamp, layout.canvasWidth / 2, bottomY);
+    ctx.fillText(config.stamp, layout.canvasWidth / 2, bottomY);
 
     // Tanggal
     ctx.font = "bold 16px 'Plus Jakarta Sans', sans-serif";
@@ -645,8 +644,7 @@ export default function PhotoBooth({ currentUser }) {
 
     try {
       const base64Data = canvas.toDataURL('image/png');
-      const name = currentUser?.name || 'guest';
-      const result = await uploadPhotoToGoogleDrive(base64Data, name);
+      const result = await uploadPhotoToGoogleDrive(base64Data);
       if (result.success) {
         setGdriveStatus('success');
         setGdriveUrl(result.fileUrl);

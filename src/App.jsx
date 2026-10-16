@@ -1,82 +1,11 @@
-import React, { useState, useEffect } from 'react';
 import PhotoBooth from './components/PhotoBooth';
-import AuthModal from './components/AuthModal';
-import { Camera as CameraIcon, Heart, LogIn, LogOut, User } from 'lucide-react';
-import { supabase } from './services/supabase';
+import { Camera as CameraIcon, Heart } from 'lucide-react';
 
 /**
  * Komponen Utama App
- * Menampilkan antarmuka dasar, mengelola otentikasi user, dan merender komponen PhotoBooth terintegrasi.
+ * Menampilkan antarmuka studio dan komponen PhotoBooth.
  */
 function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-
-  // Muat status login user (dari Supabase atau LocalStorage) saat inisialisasi
-  useEffect(() => {
-    // 1. Coba dari Supabase jika terkonfigurasi
-    if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          const profile = {
-            name: session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email,
-            email: session.user.email,
-            avatar: session.user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${session.user.email}`,
-            isSocial: true,
-            isReal: true
-          };
-          setUser(profile);
-          localStorage.setItem('booth_user', JSON.stringify(profile));
-        }
-      });
-
-      // Dengarkan perubahan status otentikasi Supabase
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          const profile = {
-            name: session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email,
-            email: session.user.email,
-            avatar: session.user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${session.user.email}`,
-            isSocial: true,
-            isReal: true
-          };
-          setUser(profile);
-          localStorage.setItem('booth_user', JSON.stringify(profile));
-        } else {
-          setUser(null);
-          localStorage.removeItem('booth_user');
-        }
-      });
-
-      return () => {
-        subscription?.unsubscribe();
-      };
-    } else {
-      // 2. Fallback ke LocalStorage untuk demo mode / email register lokal
-      const savedUser = localStorage.getItem('booth_user');
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          console.error('Gagal membaca data user', e);
-        }
-      }
-    }
-  }, []);
-
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    localStorage.setItem('booth_user', JSON.stringify(userData));
-  };
-
-  const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    setUser(null);
-    localStorage.removeItem('booth_user');
-  };
-
   return (
     <div className="min-h-screen bg-chic-gradient bg-grid-chic text-chic-dark flex flex-col justify-between relative px-4 py-3 md:px-6">
       
@@ -95,40 +24,7 @@ function App() {
           </div>
         </div>
 
-        {/* Panel Autentikasi User */}
         <div className="flex items-center gap-3">
-          {user ? (
-            <div className="flex items-center gap-2 bg-white/80 border border-chic-border px-3 py-1 rounded-2xl shadow-sm">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-5 h-5 rounded-full object-cover border border-chic-rose bg-chic-blush-soft"
-                onError={(e) => {
-                  e.target.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.name}`;
-                }}
-              />
-              <span className="text-[10px] font-bold text-chic-dark max-w-[100px] truncate">
-                {user.name}
-              </span>
-              <div className="w-[1px] h-3 bg-chic-border/60 mx-0.5" />
-              <button
-                onClick={handleLogout}
-                title="Keluar Akun"
-                className="p-1 rounded-md text-chic-gray hover:text-chic-rose hover:bg-chic-blush-soft transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAuthOpen(true)}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-chic-rose to-chic-gold text-white px-3 py-1.5 rounded-xl text-[10px] font-bold shadow-sm hover:scale-105 active:scale-95 transition-all"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Masuk Studio</span>
-            </button>
-          )}
-
           <div className="hidden sm:flex items-center gap-1.5 bg-white/75 border border-chic-border px-2.5 py-1.5 rounded-xl text-[10px] text-chic-gray shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-chic-rose animate-ping" />
             <span className="font-mono font-medium tracking-wide">STUDIO_ACTIVE</span>
@@ -138,7 +34,7 @@ function App() {
 
       {/* TATA LETAK UTAMA */}
       <main className="flex-1 flex items-start justify-center w-full py-2">
-        <PhotoBooth currentUser={user} />
+        <PhotoBooth />
       </main>
 
       {/* FOOTER */}
@@ -151,16 +47,8 @@ function App() {
         </p>
       </footer>
 
-      {/* MODAL AUTHENTICATION */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
-
     </div>
   );
 }
 
 export default App;
-
