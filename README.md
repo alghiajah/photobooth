@@ -1,16 +1,23 @@
-# React + Vite
+# Photobooth
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplikasi photobooth berbasis React dan Vite. Pengunjung dapat mengambil foto, memilih bingkai, lalu mengunduh hasilnya.
 
-Currently, two official plugins are available:
+## Menjalankan secara lokal
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Instal dependensi dengan `npm ci`.
+2. Isi konfigurasi lokal di `.env` jika memakai Supabase atau Google Drive.
+3. Jalankan `npm run dev`.
 
-## React Compiler
+File `.env` hanya untuk mesin lokal dan tidak di-commit. Jangan menaruh kunci privat atau service-role key di dalam aplikasi frontend.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Deploy ke GitHub Pages
 
-## Expanding the ESLint configuration
+Push ke branch `main` akan menjalankan workflow GitHub Actions di `.github/workflows/deploy.yml` dan menerbitkan hasil build ke GitHub Pages.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Atur konfigurasi deploy di **Settings → Secrets and variables → Actions** pada repository:
+
+- Variable `VITE_SUPABASE_URL`
+- Secret `VITE_SUPABASE_ANON_KEY`
+- Variable `VITE_GOOGLE_SCRIPT_URL`
+
+Supabase anon key akan tertanam di JavaScript yang dikirim ke browser; lindungi data dengan Row Level Security dan jangan gunakan service-role key di frontend.
